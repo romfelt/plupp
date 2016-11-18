@@ -58,16 +58,13 @@ function updateTable(tableId) {
 	updateDeltas(tableId);
 }
 
-function viewProject(container, projectId, startPeriod) {
-}
-
 function addCells(container, data, classes) {
 	$.each(data, function(i, v) {
 		container.append($('<td/>').addClass(classes).text(v));
 	});
 }
 
-function makeTable2(container, tableId, tableData, requestType, requestId) {
+function makeTable(container, tableId, tableData, requestType, requestId) {
 	var table = $('<table id="' + tableId + '"/>').addClass('edit-table');
 
 	// store data in table element for generic ajax request to use
@@ -194,13 +191,131 @@ Plupp = {
 	}
 }
 
-function getArray(length, startValue, increment) {
-	var data = [];
-	for (var i = 0; i < length; i++) {
-    	data.push(startValue);
-    	startValue += increment;
+
+
+function Table(periodType, startPeriod, length) {
+	var self = this; // keep reference to this object to be used independent of call context
+	this.startPeriod = startPeriod;
+	this.length = length;
+	this.table = null;
+	this.zeroes = null;
+
+	// returns array of length with pre-defined values
+	this.getArray = function(length, startValue, increment) {
+		var data = [];
+		for (var i = 0; i < length; i++) {
+	    	data.push(startValue);
+	    	startValue += increment;
+		}
+		return data;
 	}
-	return data;
+
+	self.zeroes = self.getArray(length, 0, 0);
+	if (periodType == 'month') {
+		var months = self.getArray(length, startPeriod, 1);
+		self.table = [{'type': 'time', 'title': 'Month', 'data': months}]; 
+	}
+
+	this.addEditDataSection = function(titles, values) {
+		var lookup = {}; // lookup table 
+
+		// create default value zero to all table cells
+		$.each(titles, function(i, v) {
+			var data = self.zeroes.slice(); // make copy of array to create new object
+			var obj = {'type': 'editable', 'id': v.id, 'title': v.name, 'data': data};
+			self.table.push(obj);
+			lookup[v.id] = obj; // store reference to object, instead of searching for objects
+		});
+
+		// add real cell values using lookup
+		$.each(values, function(i, v) {
+			if (typeof lookup[v.id] !== 'undefined') {
+				lookup[v.id].data[v.period - self.startPeriod] = v.value;
+			}
+		});
+	}	
+
+	this.addDataRow = function(values, type, title) {
+		var data = self.zeroes.slice(); // make copy of array to create new object
+		$.each(values, function(i, v) {
+			data[v.period - self.startPeriod] = v.value;
+		});
+		self.table.push({'type': type, 'title': title, 'data': data});  
+	}
+
+	this.addSum = function() {
+		self.table.push({'type': 'sum', 'title': "Sum", 'columns': self.length});
+	}
+
+	this.addDelta = function() {
+		self.table.push({'type': 'delta', 'title': "Delta", 'columns': length});
+	}
+
+	this.build = function() {
+		makeTable($('#table-container'), 'plan', self.table, 'plan', 66);
+	}
+}
+
+
+// make basic editable table
+function basicTable(startPeriod, length, titles, values) {
+	var zeroes = getArray(length, 0, 0);
+	var months = getArray(length, startPeriod, 1);
+	var lookup = {}; // lookup table 
+
+	// create table with headings
+	var table = [{'type': 'time', 'title': 'Month', 'data': months}];
+
+	// create default values of zero to all table cells
+	$.each(titles.data, function(i, v) {
+		var data = zeroes.slice(); // make copy of array to create new object
+		var obj = {'type': 'editable', 'id': v.id, 'title': v.name, 'data': data};
+		table.push(obj);
+		lookup[v.id] = obj; // store reference to object, instead of searching for objects
+	});
+
+	// add real cell values using lookup
+	$.each(values.data, function(i, v) {
+		if (typeof lookup[v.id] !== 'undefined') {
+			lookup[v.id].data[v.period - startPeriod] = v.value;
+		}
+	});
+
+	// add a sum row at the bottom
+	table.push({'type': 'sum', 'title': "Sum", 'columns': length});
+
+	return table;
+}
+
+function addDataRow(table, length, values, type, title) {
+	var data = getArray(length, 0, 0);
+	$.each(values.data, function(i, v) {
+		data[v.period - startPeriod] = v.value;
+	});
+	table.push({'type': type, 'title': title, 'data': data});  
+}
+
+function quotasTable(startPeriod, length) {
+	var projects = Plupp.getProjects();
+	var quotas = Plupp.getQuotas(startPeriod, length);
+
+	// $.when.apply($, my_array);
+	$.when(
+		quotas.run(), projects.run()
+	)
+	.then(function() {
+		var t = new Table('month', startPeriod, length);
+		t.addEditDataSection(projects.reply.data, quotas.reply.data);
+		t.addSum();
+		t.addDataRow([], 'quota', 'Available');
+		t.addDelta();
+		t.addDataRow([], 'quota', 'Requested');
+		t.addDelta();
+		t.build();
+	})
+	.fail(function() {
+		console.log( "something went wrong!" );
+	});
 }
 
 function projectTable(projectId, startPeriod, length) {
@@ -209,79 +324,35 @@ function projectTable(projectId, startPeriod, length) {
 	var quota = Plupp.getQuota(projectId, startPeriod, length);
 
 	$.when(
-		teams.run(),
-		quota.run(),
-		plan.run()
+		teams.run(), quota.run(), plan.run()
 	)
 	.then(function() {
-		console.log("Run requests completed");
-		console.log(teams.reply);
-		console.log(plan.reply);
-		console.log(quota.reply);
-
-		var zeroes = getArray(length, 0, 0);
-		var months = getArray(length, startPeriod, 1);
-		var table = [{'type': 'time', 'title': 'Month', 'data': months}];
-		var lookup = {}; // lookup table 
-
-		// create default values of zero to all table cells
-		$.each(teams.reply.data, function(i, v) {
-			var data = zeroes.slice(); // make copy of array
-			var obj = {'type': 'editable', 'id': v.id, 'title': v.name, 'data': data};
-			table.push(obj);
-			lookup[v.id] = obj; // store reference to object, instead of searching for objects
-		});
-
-		// add real cell values using lookup
-		$.each(plan.reply.data, function(i, v) {
-			lookup[v.id].data[v.period - startPeriod] = v.value;
-		});
-
-		table.push({'type': 'sum', 'title': "Sum", 'columns': length});
-
-		// add quotas
-		var data = zeroes.slice(); // make copy of array
-		$.each(quota.reply.data, function(i, v) {
-			data[v.period - startPeriod] = v.value;
-		});
-		table.push({'type': 'quota', 'title': 'Quota', 'data': data});  
-
-		table.push({'type': 'delta', 'title': "Delta", 'columns': length});
-
-		makeTable2($('#table-container'), 'plan', table, 'plan', projectId);
+		var t = new Table('month', startPeriod, length);
+		t.addEditDataSection(teams.reply.data, plan.reply.data);
+		t.addSum();
+		t.addDataRow(quota.reply.data, 'quota', 'Quota');
+		t.addDelta();
+		t.build();
 	})
 	.fail(function() {
 		console.log( "something went wrong!" );
 	});
 }
 
+function showView(view) {
+	if (view == 'quotas') {
+		quotasTable(startPeriod, length);
+	}
+}
+
 $(document).ready(function() {
 	console.log("ready!");
 
-	projectTable(66, 11, 24);
+//	projectTable(66, 11, 24);
+
+	quotasTable(11, 24);
+
 	return;
 
-	$.ajax({
-		url: 'api.php/plan/66/10',
-		type: 'GET',
-		success: function(result) {
-			console.log("SUCCESS");
-			console.log(result);
-		},
-		error: function(exception) {
-			alert('Exeption:' + JSON.stringify(exception));
-		}
-	});
-
-	var d = [ {'type': 'time', 'title': 'Month', 'data': [10, 12, 13, 14, 15, 16]}, 
-			  {'type': 'editable', 'id': 1, 'title': 'ESW', 'data': [0, 0, 3, 4, 3, 0]}, 
-			  {'type': 'editable', 'id': 2, 'title': 'FPGA', 'data': [0, 1, 2, 2, 1, 1]},  
-			  {'type': 'editable', 'id': 3, 'title': 'Electronics', 'data': [4, 4, 3, 3, 1, 0]},  
-			  {'type': 'sum', 'title': "Sum"},
-			  {'type': 'quota', 'title': 'Quota', 'data': [10, 10, 10, 10, 10, 10]},  
-			  {'type': 'delta', 'title': 'Delta'},
-			];
-
-//	makeTable2($('#table-container'), 'plan', d, 'plan', 66);
 });
 
