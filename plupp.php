@@ -46,35 +46,75 @@ class Plupp
 		return array(true, $this->_fetachAll($result));
 	}
 
-	public function setPlan($projectId, $teamId, $period, $value) {
-		$sql = "INSERT INTO " . self::TABLE_PLAN . " SET projectId=$projectId, teamId=$teamId, period=$period, value=$value";
+	private function _setQuery($sql) {
 		$result = $this->db->query($sql) === true;
 		return array($result, $result !== true ? error() : '');
 	}
 
-	// returns array(status, data)
+	public function setPlan($projectId, $data, $teamIdKey, $periodKey, $valueKey) {
+		$sql = "INSERT INTO " . self::TABLE_PLAN . " (projectId, teamId, period, value) VALUES";
+		$i = 0;
+		foreach ($data as $k => $v) {
+			if ($i++ > 0) {
+				$sql .= ',';
+			}
+			$sql .= " ($projectId, $v[$teamIdKey], $v[$periodKey], $v[$valueKey])";
+		}
+
+		return _setQuery($sql);
+	}
+
 	public function getPlan($projectId, $startPeriod, $length) {
 		$endPeriod = $startPeriod + $length;
 		$sql = "SELECT p.teamId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
 			   "    SELECT teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY teamId, period" .
 			   ") r ON p.timestamp = r.latest AND p.teamId = r.teamId AND p.period = r.period " .
-			   "WHERE p.projectId=$projectId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.timestamp DESC";
+			   "WHERE p.projectId=$projectId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
 
-	public function setQuota($period, $projectId, $value) {
-		$sql = "INSERT INTO " . self::TABLE_QUOTA . " SET projectId=$projectId, period=$period, value=$value";
-		echo $sql . "<br>\n";
+	public function getPlans($startPeriod, $length) {
+		$endPeriod = $startPeriod + $length;
+		$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
+			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
+			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
+			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
+
+		return $this->_getQuery($sql);
 	}
 
-	public function getQuota($startPeriod, $projectId = null) {
-		if ($projectId === null) {
+	public function setQuota($data, $projectIdKey, $periodKey, $valueKey) {
+		$sql = "INSERT INTO " . self::TABLE_QUOTA . " (projectId, period, value) VALUES";
+		$i = 0;
+		foreach ($data as $k => $v) {
+			if ($i++ > 0) {
+				$sql .= ',';
+			}
+			$sql .= " ($v[$projectIdKey], $v[$periodKey], $v[$valueKey])";
 		}
 
-		$sql = "SELECT * FROM " . self::TABLE_QUOTA . " WHERE period >= $period ORDER BY timestamp DESC LIMIT 1";
+		return _setQuery($sql);
+	}
 
-		echo $sql . "<br>\n";
+	public function getQuota($projectId, $startPeriod, $length) {
+		$endPeriod = $startPeriod + $length;
+		$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
+			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
+			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
+			   "WHERE p.projectId=$projectId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.period ASC";
+
+		return $this->_getQuery($sql);
+	}
+
+	public function getQuotas($startPeriod, $length) {
+		$endPeriod = $startPeriod + $length;
+		$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
+			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
+			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
+			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
+
+		return $this->_getQuery($sql);
 	}
 
 	public function getTeams() {

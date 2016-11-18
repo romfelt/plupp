@@ -125,11 +125,11 @@ function doPost(tableId) {
 
 	// get all dirty cells, i.e. those modified
 	$('td.cell-dirty').each(function(i, e) {
-		var time = $('#' + tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')').text(); // time value store in to top cell in same column
+		var period = $('#' + tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')').text(); // time period value store in to top cell in same column
 	    var id = $(e).closest('tr').data('id'); // id value stored as data in row element
 	    var value = parseFloat($(e).text());
 		if (!isNaN(value)) { // @TODO add checks for all variables
-			requestData.data.push({'id' : id, 'time' : time, 'value' : value});
+			requestData.data.push({'id' : id, 'period' : period, 'value' : value});
 		}
 	});
 
@@ -151,13 +151,13 @@ function doPost(tableId) {
 
 
 function PluppRequest(call) {
-	var self = this;  // keep reference to this object to be used independent of call context
+	var self = this; // keep reference to this object to be used independent of call context
 	this.reply = null; // complete JSON reply returned by request on success
 	this.root = "api.php";
 	this.call = call;
 
 	this.onSuccess = function(reply) {
-//		console.log("Success: " + JSON.stringify(reply));
+		// console.log("Success: " + JSON.stringify(reply));
 		self.reply = reply;
 	}
 
@@ -171,14 +171,28 @@ function PluppRequest(call) {
 }
 
 Plupp = {
+	getProject:function(projectId) {
+		return new PluppRequest("project/" + projectId);
+	},
+	getProjects:function() {
+		return new PluppRequest("projects");
+	},
 	getTeams:function() {
 		return new PluppRequest("teams");
 	},
-	getProjectPlan:function(projectId, startPeriod, length) {
+	getPlan:function(projectId, startPeriod, length) {
 		return new PluppRequest("plan/" + projectId + "/" + startPeriod + "/" + length);
+	},
+	getPlans:function(startPeriod, length) {
+		return new PluppRequest("plans/" + startPeriod + "/" + length);
+	},
+	getQuota:function(projectId, startPeriod, length) {
+		return new PluppRequest("quota/" + projectId + "/" + startPeriod + "/" + length);
+	},
+	getQuotas:function(startPeriod, length) {
+		return new PluppRequest("quotas/" + startPeriod + "/" + length);
 	}
 }
-
 
 function getArray(length, startValue, increment) {
 	var data = [];
@@ -191,16 +205,19 @@ function getArray(length, startValue, increment) {
 
 function projectTable(projectId, startPeriod, length) {
 	var teams = Plupp.getTeams();
-	var plan = Plupp.getProjectPlan(projectId, startPeriod, length);
+	var plan = Plupp.getPlan(projectId, startPeriod, length);
+	var quota = Plupp.getQuota(projectId, startPeriod, length);
 
 	$.when(
 		teams.run(),
+		quota.run(),
 		plan.run()
 	)
 	.then(function() {
-		console.log("Run requests succeeded and animations completed");
+		console.log("Run requests completed");
 		console.log(teams.reply);
 		console.log(plan.reply);
+		console.log(quota.reply);
 
 		var zeroes = getArray(length, 0, 0);
 		var months = getArray(length, startPeriod, 1);
@@ -215,13 +232,20 @@ function projectTable(projectId, startPeriod, length) {
 			lookup[v.id] = obj; // store reference to object, instead of searching for objects
 		});
 
-		// add real cell values
+		// add real cell values using lookup
 		$.each(plan.reply.data, function(i, v) {
 			lookup[v.id].data[v.period - startPeriod] = v.value;
 		});
 
 		table.push({'type': 'sum', 'title': "Sum", 'columns': length});
-		table.push({'type': 'quota', 'title': 'Quota', 'data': zeroes});  
+
+		// add quotas
+		var data = zeroes.slice(); // make copy of array
+		$.each(quota.reply.data, function(i, v) {
+			data[v.period - startPeriod] = v.value;
+		});
+		table.push({'type': 'quota', 'title': 'Quota', 'data': data});  
+
 		table.push({'type': 'delta', 'title': "Delta", 'columns': length});
 
 		makeTable2($('#table-container'), 'plan', table, 'plan', projectId);
