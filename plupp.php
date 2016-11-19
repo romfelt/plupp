@@ -1,5 +1,8 @@
 <?php
 
+// 
+// Class for interacting with the Plupp MySQL database
+//
 class Plupp
 {
 	const TABLE_QUOTA = 'quota';
@@ -84,7 +87,7 @@ class Plupp
 		return $this->_getQuery($sql);
 	}
 
-	public function setQuota($data, $projectIdKey, $periodKey, $valueKey) {
+	public function setQuotas($data, $projectIdKey, $periodKey, $valueKey) {
 		$sql = "INSERT INTO " . self::TABLE_QUOTA . " (projectId, period, value) VALUES";
 		$i = 0;
 		foreach ($data as $k => $v) {
@@ -136,6 +139,10 @@ class Plupp
 		    return 'MySQL error (' . $this->db->errno . ') ' . $this->db->error;
 		}
 		return true;
+	}
+
+	public function initializeTables() {
+		// @TODO make it possible to create SQL tables in an empty database
 	}
 
 }

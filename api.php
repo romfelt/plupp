@@ -9,15 +9,15 @@ $request = ServiceEndPoint::getRequest();
 
 if (!isset($method) || $request == null || !isset($request[0])) {
 	echo "<h1>PLUPP API description</h1>";
-	echo PostPlan::API . '<br>';
-	echo GetPlan::API . '<br>';
-	echo GetPlans::API . '<br>';
-	echo PostQuota::API . '<br>';
-	echo GetQuota::API . '<br>';
-	echo GetQuotas::API . '<br>';
-	echo GetProject::API . '<br>';
-	echo GetProjects::API . '<br>';
-	echo GetTeams::API . '<br>';
+	echo SetPlan::DESCRIPTION . '<br>';
+	echo GetPlan::DESCRIPTION . '<br>';
+	echo GetPlans::DESCRIPTION . '<br>';
+	echo SetQuota::DESCRIPTION . '<br>';
+	echo GetQuota::DESCRIPTION . '<br>';
+	echo GetQuotas::DESCRIPTION . '<br>';
+	echo GetProject::DESCRIPTION . '<br>';
+	echo GetProjects::DESCRIPTION . '<br>';
+	echo GetTeams::DESCRIPTION . '<br>';
 	exit();
 }
 
@@ -28,19 +28,19 @@ $obj = null;
 
 if ($method == 'POST') {
 	switch ($cmd) {
-		case 'plan': $obj = new PostPlan($request); break;
-		case 'quota': $obj = new PostQuota($request); break;
+		case SetPlan::API: $obj = new SetPlan($request); break;
+		case SetQuotas::API: $obj = new SetQuotas($request); break;
 	}
 }
 else if ($method == 'GET') {
 	switch ($cmd) {
-		case 'plan': $obj = new GetPlan($request); break;
-		case 'plans': $obj = new GetPlans($request); break;
-		case 'teams': $obj = new GetTeams($request); break;
-		case 'project': $obj = new GetProject($request); break;
-		case 'projects': $obj = new GetProjects($request); break;
-		case 'quota': $obj = new GetQuota($request); break;
-		case 'quotas': $obj = new GetQuotas($request); break;
+		case GetPlan::API: $obj = new GetPlan($request); break;
+		case GetPlans::API: $obj = new GetPlans($request); break;
+		case GetTeams::API: $obj = new GetTeams($request); break;
+		case GetProject::API: $obj = new GetProject($request); break;
+		case GetProjects::API: $obj = new GetProjects($request); break;
+		case GetQuota::API: $obj = new GetQuota($request); break;
+		case GetQuotas::API: $obj = new GetQuotas($request); break;
 	}
 }
 
@@ -130,8 +130,9 @@ class ServiceEndPoint {
 }
 
 // JSON data in body
-class PostPlan extends ServiceEndPoint {
-	const API = 'POST /plan/{projectId}';
+class SetPlan extends ServiceEndPoint {
+	const DESCRIPTION = 'POST /plan/{projectId}';
+	const API = 'plan';
 
 	public function __construct($request) {
 		parent::__construct($request, 1);
@@ -140,14 +141,15 @@ class PostPlan extends ServiceEndPoint {
 	protected function service() {
 		$projectId = $this->request[1];
 		$data = $_POST['data'];
-		list($rc, $reply) = $this->plupp->setPlan2($projectId, $data, 'id', 'period', 'value');
+		list($rc, $reply) = $this->plupp->setPlan($projectId, $data, 'id', 'period', 'value');
 		$this->reply = $reply;
 		return $rc === true;
 	}
 }
 
 class GetPlan extends ServiceEndPoint {
-	const API = 'GET /plan/{projectId}/{startPeriod}/{length}';
+	const DESCRIPTION = 'GET /plan/{projectId}/{startPeriod}/{length}';
+	const API = 'plan';
 
 	public function __construct($request) {
 		parent::__construct($request, 3);
@@ -165,7 +167,8 @@ class GetPlan extends ServiceEndPoint {
 }
 
 class GetPlans extends ServiceEndPoint {
-	const API = 'GET /plans/{startPeriod}/{length}';
+	const DESCRIPTION = 'GET /plans/{startPeriod}/{length}';
+	const API = 'plans';
 
 	public function __construct($request) {
 		parent::__construct($request, 2);
@@ -180,20 +183,21 @@ class GetPlans extends ServiceEndPoint {
 	}
 }
 
-class PostQuota extends ServiceEndPoint {
-	const API = 'POST /quota';
+class SetQuotas extends ServiceEndPoint {
+	const DESCRIPTION = 'POST /quotas';
+	const API = 'quotas';
 
 	protected function service() {
 		$data = $_POST['data'];
-		list($rc, $reply) = $this->plupp->setQuota($data, 'id', 'period', 'value');
+		list($rc, $reply) = $this->plupp->setQuotas($data, 'id', 'period', 'value');
 		$this->reply = $reply;
 		return $rc === true;
-
 	}
 }
 
 class GetQuota extends ServiceEndPoint {
-	const API = 'GET /quota/{projectId}/{startPeriod}/{length}';
+	const DESCRIPTION = 'GET /quota/{projectId}/{startPeriod}/{length}';
+	const API = 'quota';
 
 	public function __construct($request) {
 		parent::__construct($request, 3);
@@ -211,7 +215,8 @@ class GetQuota extends ServiceEndPoint {
 }
 
 class GetQuotas extends ServiceEndPoint {
-	const API = 'GET /quotas/{startPeriod}/{length}';
+	const DESCRIPTION = 'GET /quotas/{startPeriod}/{length}';
+	const API = 'quotas';
 
 	public function __construct($request) {
 		parent::__construct($request, 2);
@@ -227,7 +232,8 @@ class GetQuotas extends ServiceEndPoint {
 }
 
 class GetTeams extends ServiceEndPoint {
-	const API = 'GET /teams';
+	const DESCRIPTION = 'GET /teams';
+	const API = 'teams';
 
 	protected function service() {
 		list($rc, $reply) = $this->plupp->getTeams();
@@ -237,7 +243,8 @@ class GetTeams extends ServiceEndPoint {
 }
 
 class GetProjects extends ServiceEndPoint {
-	const API = 'GET /projects';
+	const DESCRIPTION = 'GET /projects';
+	const API = 'projects';
 
 	protected function service() {
 		list($rc, $reply) = $this->plupp->getProjects();
@@ -247,7 +254,8 @@ class GetProjects extends ServiceEndPoint {
 }
 
 class GetProject extends ServiceEndPoint {
-	const API = 'GET /project/{projectId}';
+	const DESCRIPTION = 'GET /project/{projectId}';
+	const API = 'project';
 
 	public function __construct($request) {
 		parent::__construct($request, 1);
