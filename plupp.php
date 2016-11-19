@@ -64,7 +64,7 @@ class Plupp
 			$sql .= " ($projectId, $v[$teamIdKey], $v[$periodKey], $v[$valueKey])";
 		}
 
-		return _setQuery($sql);
+		return $this->_setQuery($sql);
 	}
 
 	public function getPlan($projectId, $startPeriod, $length) {
@@ -97,7 +97,7 @@ class Plupp
 			$sql .= " ($v[$projectIdKey], $v[$periodKey], $v[$valueKey])";
 		}
 
-		return _setQuery($sql);
+		return $this->_setQuery($sql);
 	}
 
 	public function getQuota($projectId, $startPeriod, $length) {

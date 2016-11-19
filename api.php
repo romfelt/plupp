@@ -83,16 +83,8 @@ class ServiceEndPoint {
 	public function run() {
 		$this->init(); // will exit on fail
 		$rc = $this->service(); // run the service
-
-		// translate return code if set to true or false
-		if ($rc === true) {
-			$rc = self::OK;
-		} 
-		else if ($rc === false) {
-			$rc = self::SERVER_ERROR;
-		} 
-
-		$this->reply($rc); // send reply and HTTP status code
+		$code = $rc === true ? self::OK : self::SERVER_ERROR;
+		self::replyAndDie($code, $this->reply); // send reply and HTTP status code
 	}
 
 	// Initialize end point. Check if number of required args is availble.
@@ -111,20 +103,26 @@ class ServiceEndPoint {
 	}
 
 	// Returns reply to requester as JSON encoded data and exits php script
-	private function reply($code) {
-		self::replyAndDie($code, $this->reply);
-	}
-
-	// Returns reply to requester as JSON encoded data and exits php script
+	// @param code The HTTP response code
+	// @param reply The data object or error string to return to caller
 	public static function replyAndDie($code, $reply) {
 		http_response_code($code);
 		header('Content-type: application/json');
-		if (isset($reply)) {
-			if ($code != self::OK) {
-				$reply = array('error' => $reply);
+
+		if ($code === self::OK) {
+			if (isset($reply)) {
+				$reply['status'] = true; 
 			}
-			echo json_encode($reply);
+			else {
+				$reply = array('status' => true);
+			}
 		}
+		else {
+			$reply = array('error' => $reply, 'status' => false);
+		}
+
+		echo json_encode($reply);
+		
 		exit();
 	}
 }

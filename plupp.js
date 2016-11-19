@@ -1,54 +1,41 @@
 
-function doPost(tableId) {
-	// @TODO check valid data
-	var requestType = $('#' + tableId).data('requestType');
-	var requestId = $('#' + tableId).data('requestId');	
-	var requestData = {'data' : []};
-
-	// get all dirty cells, i.e. those modified
-	$('td.cell-dirty').each(function(i, e) {
-		var period = $('#' + tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')').text(); // time period value store in to top cell in same column
-	    var id = $(e).closest('tr').data('id'); // id value stored as data in row element
-	    var value = parseFloat($(e).text());
-		if (!isNaN(value)) { // @TODO add checks for all variables
-			requestData.data.push({'id' : id, 'period' : period, 'value' : value});
-		}
-	});
-
-	console.log(JSON.stringify(requestData));
-
-	$.ajax({
-		url: 'api.php/' + requestType + '/' + requestId,
-		type: 'POST',
-		data: requestData,
-		success: function(result) {
-			$('td.cell-dirty').removeClass('cell-dirty');
-		},
-		error: function(exception) {
-			alert('Exeption:' + JSON.stringify(exception));
-		}
-	});
-}
-
-
-
-function PluppRequest(call) {
+function PluppRequest(service, data) {
 	var self = this; // keep reference to this object to be used independent of call context
 	this.reply = null; // complete JSON reply returned by request on success
 	this.root = "api.php";
-	this.call = call;
+	this.service = service;
+	this.data = data;
+	this.status = null; // null equals not completed, true if completed successfully and false if completed with errors
 
 	this.onSuccess = function(reply) {
-		// console.log("Success: " + JSON.stringify(reply));
 		self.reply = reply;
+		if (self.reply.status != true) {
+			self.status = false;
+			console.log("Request error: " + JSON.stringify(self.reply.error));
+		}
+		else {
+			self.status = true;
+		}
 	}
 
 	this.onError = function(error) {
+		self.status = false;
 	}
 
 	// run the request, return deferred object
 	this.run = function() {
-		return $.get("api.php/" + self.call, self.onSuccess);
+		var jqxhr;
+		if (typeof(self.data) === 'undefined') {
+			jqxhr = $.get("api.php/" + self.service);
+		}
+		else {
+			jqxhr = $.post("api.php/" + self.service, self.data);
+		}
+
+		jqxhr.done(self.onSuccess)
+			 .fail(self.onError);
+
+		return jqxhr;
 	}	
 }
 
@@ -62,6 +49,9 @@ Plupp = {
 	getTeams:function() {
 		return new PluppRequest("teams");
 	},
+	setPlan:function(projectId, data) {
+		return new PluppRequest("plan/" + projectId, data);
+	},
 	getPlan:function(projectId, startPeriod, length) {
 		return new PluppRequest("plan/" + projectId + "/" + startPeriod + "/" + length);
 	},
@@ -71,6 +61,9 @@ Plupp = {
 	getQuota:function(projectId, startPeriod, length) {
 		return new PluppRequest("quota/" + projectId + "/" + startPeriod + "/" + length);
 	},
+	setQuotas:function(data) {
+		return new PluppRequest("quota", data);
+	},
 	getQuotas:function(startPeriod, length) {
 		return new PluppRequest("quotas/" + startPeriod + "/" + length);
 	}
@@ -78,13 +71,16 @@ Plupp = {
 
 
 
-function Table(tableId, periodType, startPeriod, length) {
+function Table(tableId, periodType, startPeriod, length, requestService, requestId) {
 	var self = this; // keep reference to this object to be used independent of call context
+	this.tableId = tableId;
 	this.startPeriod = startPeriod;
 	this.length = length;
+	this.requestService = requestService;
+	this.requestId = requestId;
 	this.table = null;
 	this.zeroes = null;
-	this.tableId = tableId;
+	this.buttons = false;
 
 	// returns array of length with pre-defined values
 	this.getArray = function(length, startValue, increment) {
@@ -103,7 +99,7 @@ function Table(tableId, periodType, startPeriod, length) {
 	}
 
 	this.addEditDataSection = function(titles, values) {
-		var lookup = {}; // lookup table 
+		var lookup = {}; // lookup table to keep track of objects based on id, no need to search
 
 		// create default value zero to all table cells
 		$.each(titles, function(i, v) {
@@ -113,7 +109,7 @@ function Table(tableId, periodType, startPeriod, length) {
 			lookup[v.id] = obj; // store reference to object, instead of searching for objects
 		});
 
-		// add real cell values using lookup
+		// add real cell values
 		$.each(values, function(i, v) {
 			if (typeof lookup[v.id] !== 'undefined') {
 				lookup[v.id].data[v.period - self.startPeriod] = v.value;
@@ -198,13 +194,12 @@ function Table(tableId, periodType, startPeriod, length) {
 		});
 	}
 
-	this.build = function(container, requestType, requestId) {
-		var table = $('<table id="' + self.tableId + '"/>').addClass('edit-table');
+	this.addButtons = function() {
+		self.buttons = true;		
+	}
 
-		// @TODO store in object instead!!
-		// store data in table element for generic ajax request to use
-		table.data('requestType', requestType);
-		table.data('requestId', requestId);
+	this.build = function(container) {
+		var table = $('<table id="' + self.tableId + '"/>').addClass('edit-table');
 
 		$.each(self.table, function(i, obj) {
 			var tr = $("<tr/>");
@@ -234,6 +229,12 @@ function Table(tableId, periodType, startPeriod, length) {
 		table.editableTableWidget();
 		self.updateTable();
 
+		if (self.buttons === true) {
+			//var save = $('<button>Save</button>').click(function (){alert("hej");} /*self.post()*/);
+			var save = $('<button>Save</button>').click(function (){ self.post();});
+			container.append(save);
+		}
+
 		$('td.cell').on('validate', function(e, newValue) {
 			// @TODO make proper input value check
 			if (newValue == 1) { 
@@ -248,6 +249,48 @@ function Table(tableId, periodType, startPeriod, length) {
 			return true;
 		});
 	}
+
+	// post changed cells' data to service end point
+	this.post = function() {
+		var requestData = {'data' : []};
+
+		// get all dirty cells, i.e. those modified
+		$('#' + self.tableId + ' td.cell-dirty').each(function(i, e) {
+			// @TODO move time period value to data field instead, allows other formatting of date in cell
+			var period = $('#' + self.tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')').text(); // time period value store in to top cell in same column
+		    var id = $(e).closest('tr').data('id'); // id value stored as data in row element
+		    var value = parseFloat($(e).text());
+			if (!isNaN(value)) { // @TODO add checks for all variables
+				requestData.data.push({'id' : id, 'period' : period, 'value' : value});
+			}
+		});
+
+		var request;
+		if (self.requestService == 'quotas') {
+			request = Plupp.setQuotas(requestData);
+		}
+		else if (self.requestService == 'plan') {
+			request = Plupp.setPlan(self.requestId, requestData);
+		}
+		else {
+			return;
+		}
+
+		$.when(
+			request.run()
+		)
+		.then(function() {
+			if (request.status != true) {
+				alert("request failed");				
+			}
+			else {
+				$('#' + self.tableId + ' td.cell-dirty').removeClass('cell-dirty');
+			}
+		})
+		.fail(function() {
+			alert("request failed");				
+		});
+	}
 }
 
 function quotasTable(startPeriod, length) {
@@ -259,13 +302,14 @@ function quotasTable(startPeriod, length) {
 		quotas.run(), projects.run()
 	)
 	.then(function() {
-		var t = new Table('quotas', 'month', startPeriod, length);
+		var t = new Table('quotas', 'month', startPeriod, length, 'quotas');
 		t.addEditDataSection(projects.reply.data, quotas.reply.data);
 		t.addSum();
 		t.addDataRow([], 'quota', 'Available');
 		t.addDelta();
 		t.addDataRow([], 'quota', 'Requested');
 		t.addDelta();
+		t.addButtons();
 		t.build($('#table-container'), 'plan', 66);
 	})
 	.fail(function() {
@@ -282,12 +326,13 @@ function projectTable(projectId, startPeriod, length) {
 		teams.run(), quota.run(), plan.run()
 	)
 	.then(function() {
-		var t = new Table('project', 'month', startPeriod, length);
+		var t = new Table('project', 'month', startPeriod, length, 'plan', projectId);
 		t.addEditDataSection(teams.reply.data, plan.reply.data);
 		t.addSum();
 		t.addDataRow(quota.reply.data, 'quota', 'Quota');
 		t.addDelta();
-		t.build($('#table-container'), 'quota', 0);
+		t.addButtons();
+		t.build($('#table-container'), 'quota', 0);	
 	})
 	.fail(function() {
 		console.log( "something went wrong!" );
