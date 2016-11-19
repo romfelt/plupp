@@ -99,13 +99,13 @@ function Table(tableTitle, periodType, startPeriod, length, requestService, requ
 		self.table = [{'type': 'time', 'title': 'Month', 'data': months}]; 
 	}
 
-	this.addEditDataSection = function(titles, values) {
+	this.addDataSection = function(titles, values, type) {
 		var lookup = {}; // lookup table to keep track of objects based on id, no need to search
 
 		// create default value zero to all table cells
 		$.each(titles, function(i, v) {
 			var data = self.zeroes.slice(); // make copy of array to create new object
-			var obj = {'type': 'editable', 'id': v.id, 'title': v.name, 'data': data};
+			var obj = {'type': type, 'id': v.id, 'title': v.name, 'data': data};
 			self.table.push(obj);
 			lookup[v.id] = obj; // store reference to object, instead of searching for objects
 		});
@@ -118,7 +118,7 @@ function Table(tableTitle, periodType, startPeriod, length, requestService, requ
 		});
 	}	
 
-	this.addDataRow = function(values, type, title) {
+	this.addDataRow = function(title, values, type) {
 		var data = self.zeroes.slice(); // make copy of array to create new object
 		$.each(values, function(i, v) {
 			data[v.period - self.startPeriod] = v.value;
@@ -127,11 +127,11 @@ function Table(tableTitle, periodType, startPeriod, length, requestService, requ
 	}
 
 	this.addSum = function() {
-		self.table.push({'type': 'sum', 'title': "Sum", 'columns': self.length});
+		self.table.push({'type': 'sum', 'title': 'Sum', 'columns': self.length});
 	}
 
 	this.addDelta = function() {
-		self.table.push({'type': 'delta', 'title': "Delta", 'columns': length});
+		self.table.push({'type': 'delta', 'title': 'Delta', 'columns': length});
 	}
 
 	// set or get cell value
@@ -191,15 +191,19 @@ function Table(tableTitle, periodType, startPeriod, length, requestService, requ
 
 	this.addCells = function(container, data, classes) {
 		$.each(data, function(i, v) {
-			container.append($('<td/>').addClass(classes).text(v));
+			container.append($('<td/>')
+				.addClass(classes)
+				.text(v)
+				.data('value', v)); // store orginal value to cell data to enable undo
 		});
 	}
 
+	// @TODO keep this? Or decide automatically when build()-ing with or without support for editing?
 	this.addButtons = function() {
 		self.buttons = true;		
 	}
 
-	this.build = function(container) {
+	this.build = function(editable, container) {
 		var table = $('<table id="' + self.tableId + '"/>').addClass('edit-table');
 
 		$.each(self.table, function(i, obj) {
@@ -210,10 +214,13 @@ function Table(tableTitle, periodType, startPeriod, length, requestService, requ
 				self.addCells(tr, obj.data, 'cell-header');
 			}
 			else if (obj.type == 'editable') {
-				tr.data('id', obj.id); // id used for interfacing with database
+				tr.data('id', obj.id); // row id used for interfacing with database, such as projectId or teamId
 				self.addCells(tr, obj.data, 'cell');			
 			}
-			else if (obj.type == 'quota') {
+			else if (obj.type == 'constant') {
+				self.addCells(tr, obj.data, 'cell');
+			}
+			else if (obj.type == 'header') {
 				self.addCells(tr, obj.data, 'cell-header');
 			}
 			else if (obj.type == 'sum') {
@@ -229,7 +236,6 @@ function Table(tableTitle, periodType, startPeriod, length, requestService, requ
 		// erase existing elements in container and add table
 		container.html('<h1>' + self.tableTitle + '</h1>');
 		container.append(table);
-		table.editableTableWidget();
 		self.updateTable();
 
 		if (self.buttons === true) {
@@ -243,7 +249,11 @@ function Table(tableTitle, periodType, startPeriod, length, requestService, requ
 
 			var cancel = $('<button id="undo">Undo</button>')
 				.click(function() { 
-					// @TODO undo all edits, add default values to cell data?
+					$('#' + self.tableId + ' td.cell-dirty').each(function(i, e) {
+						$(e).text($(e).data('value')).removeClass('cell-dirty');
+					});
+					$('#buttons').fadeOut();
+					self.updateTable();
 				})
 				.addClass('button button-undo');
 
@@ -252,21 +262,25 @@ function Table(tableTitle, periodType, startPeriod, length, requestService, requ
 			$('#buttons').append(cancel);
 		}
 
-		$('td.cell').on('validate', function(e, newValue) {
-			if (isNaN(newValue)) { 
-				return false; // mark cell as invalid 
-			}
-		});
-		
-		$('td.cell').on('change', function(e, newValue) {
-			$(e.target).addClass('cell-dirty');
-			$('#buttons').fadeIn();
+		if (editable === true) {
+			table.editableTableWidget();
 
-			// @TODO only update corresponding column
-			self.updateTable();
+			$('td.cell').on('validate', function(e, newValue) {
+				if (isNaN(newValue)) { 
+					return false; // mark cell as invalid 
+				}
+			});
+			
+			$('td.cell').on('change', function(e, newValue) {
+				$(e.target).addClass('cell-dirty');
+				$('#buttons').fadeIn();
 
-			return true;
-		});
+				// @TODO only update corresponding column
+				self.updateTable();
+
+				return true;
+			});
+		}
 	}
 
 	// post changed cells' data to service end point
@@ -308,7 +322,10 @@ function Table(tableTitle, periodType, startPeriod, length, requestService, requ
 				alert("request failed");				
 			}
 			else {
-				$('#' + self.tableId + ' td.cell-dirty').removeClass('cell-dirty');
+				// remove dirty styling and store new value to data field to enable undo again
+				$('#' + self.tableId + ' td.cell-dirty').each(function(i, e) {
+					$(e).data('value', $(e).text()).removeClass('cell-dirty');
+				});
 				$('#buttons').fadeOut();
 			}
 		})
@@ -328,16 +345,39 @@ function quotasTable(startPeriod, length) {
 	)
 	.then(function() {
 		var t = new Table('Project Quotas', 'month', startPeriod, length, 'quotas');
-		t.addEditDataSection(projects.reply.data, quotas.reply.data);
+		t.addDataSection(projects.reply.data, quotas.reply.data, 'editable');
 		t.addSum();
-		t.addDataRow([], 'quota', 'Available');
+		t.addDataRow('Available', [], 'header');
 		t.addDelta();
-		t.addDataRow([], 'quota', 'Requested');
+		t.addDataRow('Requested', [], 'header');
 		t.addDelta();
 		t.addButtons();
-		t.build($('#table-container'), 'plan', 66);
+		t.build(true, $('#table-container'));
 	})
 	.fail(function() {
+		// @TODO 
+		console.log( "something went wrong!" );
+	});
+}
+
+function plansTable(startPeriod, length) {
+	var projects = Plupp.getProjects();
+	var plans = Plupp.getPlans(startPeriod, length);
+
+	$.when(
+		plans.run(), projects.run()
+	)
+	.then(function() {
+		var t = new Table('Project Resource Plans', 'month', startPeriod, length);
+		// @TODO this is a view only table
+		t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
+		t.addSum();
+		t.addDataRow('Available', [], 'header');
+		t.addDelta();
+		t.build(false, $('#table-container'));
+	})
+	.fail(function() {
+		// @TODO 
 		console.log( "something went wrong!" );
 	});
 }
@@ -357,32 +397,33 @@ function projectTable(projectId, startPeriod, length) {
 			title += project.reply.data[0].name;
 		}
 		var t = new Table(title, 'month', startPeriod, length, 'plan', projectId);
-		t.addEditDataSection(teams.reply.data, plan.reply.data);
+		t.addDataSection(teams.reply.data, plan.reply.data, 'editable');
 		t.addSum();
-		t.addDataRow(quota.reply.data, 'quota', 'Quota');
+		t.addDataRow('Quota', quota.reply.data, 'header');
 		t.addDelta();
 		t.addButtons();
-		t.build($('#table-container'), 'quota', 0);	
+		t.build(true, $('#table-container'));	
 	})
 	.fail(function() {
+		// @TODO 
 		console.log( "something went wrong!" );
 	});
 }
 
 function showView(view) {
-	console.log('showView() ' + view);
 	if (view == 'quotas') {
 		quotasTable(11, 24);
+	}
+	else if (view == 'plans') {
+		plansTable(11, 24);
+	}
+	else if (view == 'teams') {
+		teamsTable(11, 24);
 	}
 }
 
 $(document).ready(function() {
-	console.log("ready!");
-
-	projectTable(1, 11, 24);
-//	quotasTable(11, 24);
-
-	return;
-
+	console.log("Plupp is ready!");
+	plansTable(11, 24);
 });
 

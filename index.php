@@ -12,8 +12,8 @@
 			<div style="display:table-cell;vertical-align:middle;">
 				<a id="logo" href="#plupp">PLUPP</a>
 				<a onClick="showView('quotas');">Project Quotas</a>
-				<a href="" onClick="showView('plans');">Project Plans</a>
-				<a href="" onClick="showView('teams');">Teams</a>
+				<a onClick="showView('plans');">Project Resource Plans</a>
+				<a onClick="showView('teams');">Teams</a>
 				<a href="#home">Vacation</a>
 				<a href="#contact">Report</a>
 			</div>
