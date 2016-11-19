@@ -143,8 +143,7 @@ class SetPlan extends ServiceEndPoint {
 	protected function service() {
 		$projectId = $this->request[1];
 		$data = $_POST['data'];
-		list($rc, $reply) = $this->plupp->setPlan($projectId, $data, 'id', 'period', 'value');
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->setPlan($projectId, $data, 'id', 'period', 'value');
 		return $rc === true;
 	}
 }
@@ -161,9 +160,8 @@ class GetPlan extends ServiceEndPoint {
 		$projectId = $this->request[1];
 		$startPeriod = $this->request[2];
 		$length = $this->request[3];
-		list($rc, $reply) = $this->plupp->getPlan($projectId, $startPeriod, $length);
-		$reply['projectId'] = $projectId;
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->getPlan($projectId, $startPeriod, $length);
+		$this->reply['projectId'] = $projectId;
 		return $rc === true;
 	}
 }
@@ -179,8 +177,7 @@ class GetPlans extends ServiceEndPoint {
 	protected function service() {
 		$startPeriod = $this->request[1];
 		$length = $this->request[2];
-		list($rc, $reply) = $this->plupp->getPlans($startPeriod, $length);
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->getPlans($startPeriod, $length);
 		return $rc === true;
 	}
 }
@@ -191,8 +188,7 @@ class SetQuotas extends ServiceEndPoint {
 
 	protected function service() {
 		$data = $_POST['data'];
-		list($rc, $reply) = $this->plupp->setQuotas($data, 'id', 'period', 'value');
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->setQuotas($data, 'id', 'period', 'value');
 		return $rc === true;
 	}
 }
@@ -209,9 +205,8 @@ class GetQuota extends ServiceEndPoint {
 		$projectId = $this->request[1];
 		$startPeriod = $this->request[2];
 		$length = $this->request[3];
-		list($rc, $reply) = $this->plupp->getQuota($projectId, $startPeriod, $length);
-		$reply['projectId'] = $projectId;
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->getQuota($projectId, $startPeriod, $length);
+		$this->reply['projectId'] = $projectId;
 		return $rc === true;
 	}
 }
@@ -227,8 +222,7 @@ class GetQuotas extends ServiceEndPoint {
 	protected function service() {
 		$startPeriod = $this->request[1];
 		$length = $this->request[2];
-		list($rc, $reply) = $this->plupp->getQuotas($startPeriod, $length);
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->getQuotas($startPeriod, $length);
 		return $rc === true;
 	}
 }
@@ -238,8 +232,7 @@ class GetTeams extends ServiceEndPoint {
 	const API = 'teams';
 
 	protected function service() {
-		list($rc, $reply) = $this->plupp->getTeams();
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->getTeams();
 		return $rc === true;
 	}
 }
@@ -255,8 +248,7 @@ class GetTeamsPlan extends ServiceEndPoint {
 	protected function service() {
 		$startPeriod = $this->request[1];
 		$length = $this->request[2];
-		list($rc, $reply) = $this->plupp->getTeamsPlan($startPeriod, $length);
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->getTeamsPlan($startPeriod, $length);
 		return $rc === true;
 	}
 }
@@ -273,8 +265,7 @@ class GetTeamPlans extends ServiceEndPoint {
 		$teamId = $this->request[1];
 		$startPeriod = $this->request[2];
 		$length = $this->request[3];
-		list($rc, $reply) = $this->plupp->getTeamPlans($teamId, $startPeriod, $length);
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->getTeamPlans($teamId, $startPeriod, $length);
 		return $rc === true;
 	}
 }
@@ -284,8 +275,7 @@ class GetProjects extends ServiceEndPoint {
 	const API = 'projects';
 
 	protected function service() {
-		list($rc, $reply) = $this->plupp->getProjects();
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->getProjects();
 		return $rc === true;
 	}
 }
@@ -300,8 +290,7 @@ class GetProject extends ServiceEndPoint {
 
 	protected function service() {
 		$projectId = $this->request[1];
-		list($rc, $reply) = $this->plupp->getProject($projectId);
-		$this->reply = $reply;
+		list($rc, $this->reply) = $this->plupp->getProject($projectId);
 		return $rc === true;
 	}
 }
