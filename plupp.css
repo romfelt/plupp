@@ -1,17 +1,15 @@
-* {
-	font-family: sans-serif;
-}
-
 body {
 	margin: 0;
+	font-family: sans-serif;
+	font-size: 15px;
 }
 
 #menu {
     margin: 0;
     padding: 10px;
     overflow: hidden;
-    background-color: #222;
-    box-shadow: 0px 0px 3px 2px #666;
+    background-color: rgba(0,0,0,0.9);
+    box-shadow: 0px 0px 3px 2px rgba(100,100,100,0.9);
     position: fixed;
     top: 0;
     width: 100%;
@@ -19,7 +17,7 @@ body {
 }
 
 #menu a {
-	font-size: 80%;
+	font-size: 0.8em;
     color: #fff;
     text-decoration: none;
 	text-shadow: 1px 1px 2px #000;
@@ -36,7 +34,14 @@ body {
 	display: inline-block;
 	background-color: #008CBA;
 	padding: 5px 10px;
-	border-radius: 8px;
+	border-radius: 5px;
+}
+
+h1 {
+	font-weight: bold;
+	font-size: 1.5em;	
+    margin-top: 0em;
+    margin-bottom: 0.2em;
 }
 
 table {
@@ -48,8 +53,9 @@ table, th, td {
 }
 
 th, td {
-	padding: 4px;
+	padding: 3px;
 	text-align: right;
+	font-size: 1em;
 	width: 50px;
 }
 
@@ -66,7 +72,7 @@ tr:nth-child(even) {
 }
 
 .cell-dirty {
-	background-color: #6d9;
+	background-color: #ccc;
 }
 
 td:focus {
@@ -91,28 +97,34 @@ input {
 	outline-offset: 0px;
 	border: none;
 }
-/*
-#mainTable thead th, #mainTable tbody td { 
-  width: 25%;
+
+#buttons {
+	margin: 0px;
+	padding: 10px;
+	overflow: hidden;
+	background-color: rgba(255,255,255,0);
+	position: fixed;
+	bottom: 0;
+	width: 100%;
 }
 
-#mainTable td + td, #mainTable th + th {
-	text-align: right;
-}
-*/
-
-table.scrollable thead tr, table.scrollable tfoot tr  {
-	position: relative;
-	display: block
-}
-
-html>body table.scrollable tbody {
-	display: block;
-	height: 330px;
-	overflow: auto;
-	width: 100%
+.button {
+	color: white;
+	border: none;
+	text-align: center;
+	text-decoration: none;
+	display: inline-block;
+	text-shadow: 1px 1px 2px #000;
+	display: inline-block;
+	padding: 10px 15px;
+	margin-right: 10px;
+	border-radius: 5px;
 }
 
-html>body table.scrollable td, html>body table.scrollable th {
-	width: 200px
+.button-save {
+	background-color: #4CAF50; /* Green */
+}
+
+.button-undo {
+	background-color: #f44336; /* Red */
 }

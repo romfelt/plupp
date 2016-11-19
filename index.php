@@ -11,7 +11,7 @@
 		<div id="menu" style="display:table;">
 			<div style="display:table-cell;vertical-align:middle;">
 				<a id="logo" href="#plupp">PLUPP</a>
-				<a href="" onClick="showView('quotas');">Project Quotas</a>
+				<a onClick="showView('quotas');">Project Quotas</a>
 				<a href="" onClick="showView('plans');">Project Plans</a>
 				<a href="" onClick="showView('teams');">Teams</a>
 				<a href="#home">Vacation</a>
@@ -21,5 +21,6 @@
 		<div id="main">
 			<div id="table-container"></div>
 		</div>
+		<div id="buttons"></div>
 	</body>
 </html>

@@ -62,7 +62,7 @@ Plupp = {
 		return new PluppRequest("quota/" + projectId + "/" + startPeriod + "/" + length);
 	},
 	setQuotas:function(data) {
-		return new PluppRequest("quota", data);
+		return new PluppRequest("quotas", data);
 	},
 	getQuotas:function(startPeriod, length) {
 		return new PluppRequest("quotas/" + startPeriod + "/" + length);
@@ -71,9 +71,10 @@ Plupp = {
 
 
 
-function Table(tableId, periodType, startPeriod, length, requestService, requestId) {
+function Table(tableTitle, periodType, startPeriod, length, requestService, requestId) {
 	var self = this; // keep reference to this object to be used independent of call context
-	this.tableId = tableId;
+	this.tableTitle = tableTitle;
+	this.tableId = 'pluppTable';
 	this.startPeriod = startPeriod;
 	this.length = length;
 	this.requestService = requestService;
@@ -225,27 +226,45 @@ function Table(tableId, periodType, startPeriod, length, requestService, request
 			table.append(tr);
 		});
 
+		// erase existing elements in container and add table
+		container.html('<h1>' + self.tableTitle + '</h1>');
 		container.append(table);
 		table.editableTableWidget();
 		self.updateTable();
 
 		if (self.buttons === true) {
-			//var save = $('<button>Save</button>').click(function (){alert("hej");} /*self.post()*/);
-			var save = $('<button>Save</button>').click(function (){ self.post();});
-			container.append(save);
+			$('#buttons').hide();
+
+			var save = $('<button id="save">Save changes</button>')
+				.click(function() { 
+					self.post(); 
+				})
+				.addClass('button button-save');
+
+			var cancel = $('<button id="undo">Undo</button>')
+				.click(function() { 
+					// @TODO undo all edits, add default values to cell data?
+				})
+				.addClass('button button-undo');
+
+			// erase existing elements in button container and add buttons
+			$('#buttons').html(save);
+			$('#buttons').append(cancel);
 		}
 
 		$('td.cell').on('validate', function(e, newValue) {
-			// @TODO make proper input value check
-			if (newValue == 1) { 
+			if (isNaN(newValue)) { 
 				return false; // mark cell as invalid 
 			}
 		});
 		
 		$('td.cell').on('change', function(e, newValue) {
-			// @TODO only update corresponding column
 			$(e.target).addClass('cell-dirty');
+			$('#buttons').fadeIn();
+
+			// @TODO only update corresponding column
 			self.updateTable();
+
 			return true;
 		});
 	}
@@ -264,6 +283,11 @@ function Table(tableId, periodType, startPeriod, length, requestService, request
 				requestData.data.push({'id' : id, 'period' : period, 'value' : value});
 			}
 		});
+
+		// check if there where dirty cells
+		if (requestData.data.length == 0) {
+			return;
+		}
 
 		var request;
 		if (self.requestService == 'quotas') {
@@ -285,6 +309,7 @@ function Table(tableId, periodType, startPeriod, length, requestService, request
 			}
 			else {
 				$('#' + self.tableId + ' td.cell-dirty').removeClass('cell-dirty');
+				$('#buttons').fadeOut();
 			}
 		})
 		.fail(function() {
@@ -302,7 +327,7 @@ function quotasTable(startPeriod, length) {
 		quotas.run(), projects.run()
 	)
 	.then(function() {
-		var t = new Table('quotas', 'month', startPeriod, length, 'quotas');
+		var t = new Table('Project Quotas', 'month', startPeriod, length, 'quotas');
 		t.addEditDataSection(projects.reply.data, quotas.reply.data);
 		t.addSum();
 		t.addDataRow([], 'quota', 'Available');
@@ -321,12 +346,17 @@ function projectTable(projectId, startPeriod, length) {
 	var teams = Plupp.getTeams();
 	var plan = Plupp.getPlan(projectId, startPeriod, length);
 	var quota = Plupp.getQuota(projectId, startPeriod, length);
+	var project = Plupp.getProject(projectId);
 
 	$.when(
-		teams.run(), quota.run(), plan.run()
+		teams.run(), quota.run(), plan.run(), project.run()
 	)
 	.then(function() {
-		var t = new Table('project', 'month', startPeriod, length, 'plan', projectId);
+		var title = 'Project Resource Plan: ';
+		if (typeof(project.reply.data) != 'undefined') {
+			title += project.reply.data[0].name;
+		}
+		var t = new Table(title, 'month', startPeriod, length, 'plan', projectId);
 		t.addEditDataSection(teams.reply.data, plan.reply.data);
 		t.addSum();
 		t.addDataRow(quota.reply.data, 'quota', 'Quota');
@@ -340,15 +370,16 @@ function projectTable(projectId, startPeriod, length) {
 }
 
 function showView(view) {
+	console.log('showView() ' + view);
 	if (view == 'quotas') {
-		quotasTable(startPeriod, length);
+		quotasTable(11, 24);
 	}
 }
 
 $(document).ready(function() {
 	console.log("ready!");
 
-	projectTable(66, 11, 24);
+	projectTable(1, 11, 24);
 //	quotasTable(11, 24);
 
 	return;
