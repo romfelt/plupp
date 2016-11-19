@@ -369,7 +369,6 @@ function plansTable(startPeriod, length) {
 	)
 	.then(function() {
 		var t = new Table('Project Resource Plans', 'month', startPeriod, length);
-		// @TODO this is a view only table
 		t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
 		t.addSum();
 		t.addDataRow('Available', [], 'header');
@@ -408,6 +407,30 @@ function projectTable(projectId, startPeriod, length) {
 		// @TODO 
 		console.log( "something went wrong!" );
 	});
+}
+
+function teamsTable(startPeriod, length) {
+	var teams = Plupp.getTeams();
+	var plans = Plupp.getPlans(startPeriod, length);
+
+	$.when(
+		plans.run(), projects.run()
+	)
+	.then(function() {
+		var t = new Table('Team Resource Requests', 'month', startPeriod, length);
+		t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
+		t.addSum();
+		t.addDataRow('Available', [], 'header');
+		t.addDelta();
+		t.build(false, $('#table-container'));
+	})
+	.fail(function() {
+		// @TODO 
+		console.log( "something went wrong!" );
+	});
+}
+
+function teamTable(teamId, startPeriod, length) {
 }
 
 function showView(view) {

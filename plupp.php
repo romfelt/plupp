@@ -124,6 +124,14 @@ class Plupp
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " ORDER BY name ASC");
 	}
 
+	public function getTeamsPlan($startPeriod, $length) {
+		return array(false, 'Not implemented');
+	}
+
+	public function getTeamPlans($teamId, $startPeriod, $length) {
+		return array(false, 'Not implemented');
+	}
+
 	public function getProjects() {
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_PROJECT . " ORDER BY name ASC");
 	}
