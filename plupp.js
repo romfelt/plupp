@@ -21,7 +21,9 @@ function quotasTable(startPeriod, length) {
 		t.addDataRow('Requested', requested.reply.data, 'header');
 		t.addDelta(-4, -1); // delta = sum - requested
 		t.addButtons();
-		t.build(true, $('#table-container'));
+		t.build(true, $('#table-container'), function(projectId) {
+			projectTable(projectId, startPeriod, length);
+		});
 	})
 	.fail(function() {
 		// @TODO 
@@ -43,7 +45,9 @@ function plansTable(startPeriod, length) {
 		t.addSum();
 		t.addDataRow('Quotas', quotas.reply.data, 'header');
 		t.addDelta(); // delta = quota - sum
-		t.build(false, $('#table-container'));
+		t.build(false, $('#table-container'), function(projectId) {
+			projectTable(projectId, startPeriod, length);
+		});
 	})
 	.fail(function() {
 		// @TODO 
@@ -71,7 +75,9 @@ function projectTable(projectId, startPeriod, length) {
 		t.addDataRow('Quota', quota.reply.data, 'header');
 		t.addDelta(); // delta = quota - sum
 		t.addButtons();
-		t.build(true, $('#table-container'));	
+		t.build(true, $('#table-container'), function(teamId) {
+			teamTable(teamId, startPeriod, length);
+		});
 	})
 	.fail(function() {
 		// @TODO 
@@ -92,7 +98,9 @@ function teamsTable(startPeriod, length) {
 		t.addSum();
 		t.addDataRow('Available', [], 'header');
 		t.addDelta(); // delta = available - sum
-		t.build(false, $('#table-container'));
+		t.build(false, $('#table-container'), function(teamId) {
+			teamTable(teamId, startPeriod, length);
+		});
 	})
 	.fail(function() {
 		// @TODO 
@@ -118,7 +126,9 @@ function teamTable(teamId, startPeriod, length) {
 		t.addSum();
 		t.addDataRow('Available', [], 'header');
 		t.addDelta(); // delta = available - sum
-		t.build(false, $('#table-container'));
+		t.build(false, $('#table-container'), function(projectId) {
+			projectTable(projectId, startPeriod, length);
+		});
 	})
 	.fail(function() {
 		// @TODO 

@@ -119,6 +119,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 	this.addDataSection = function(titles, values, type) {
 		var lookup = {}; // lookup table to keep track of objects based on id, no need to search
 
+		// @TODO move this full-array-expansion to PluppRequest on success so that API hooks can be used by other clients as well, such as graphs
 		// create default value zero to all table cells
 		$.each(titles, function(i, v) {
 			var data = self.zeroes.slice(); // make copy of array to create new object
@@ -233,13 +234,30 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		self.buttons = true;
 	}
 
-	this.build = function(editable, container) {
+	this.build = function(editable, container, callback) {
 		var table = $('<table id="' + self.tableId + '"/>').addClass('edit-table');
 
 		$.each(self.table, function(i, obj) {
 			var tr = $("<tr/>");
+			var td = $("<td/>")
+				.addClass('cell-header')
+				.text(obj.title);
 
-			tr.append($("<td class='cell-header'/>").text(obj.title));
+			// if this is a row with an ´id´ make first column cell clickable
+			if (typeof(obj.id) !== 'undefined') {
+				td.addClass('cell-clickable');
+				td.click(function() {
+					if (typeof(callback) === 'undefined') {
+						console.log("warning: install click callback");
+						return;
+					}
+					callback(obj.id);
+				});
+			}
+
+//			tr.append($("<td class='cell-header'/>").text(obj.title));
+//			tr.append($("<td class='cell-header'/>").append(a));
+			tr.append(td);
 			if (obj.type == 'time') {
 				self.addCells(tr, obj.data, 'cell-header');
 			}
