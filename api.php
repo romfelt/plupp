@@ -12,9 +12,11 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo SetPlan::DESCRIPTION . '<br>';
 	echo GetPlan::DESCRIPTION . '<br>';
 	echo GetPlans::DESCRIPTION . '<br>';
+	echo GetPlanSum::DESCRIPTION . '<br>';
 	echo SetQuotas::DESCRIPTION . '<br>';
 	echo GetQuota::DESCRIPTION . '<br>';
 	echo GetQuotas::DESCRIPTION . '<br>';
+	echo GetQuotaSum::DESCRIPTION . '<br>';
 	echo GetProject::DESCRIPTION . '<br>';
 	echo GetProjects::DESCRIPTION . '<br>';
 	echo GetTeam::DESCRIPTION . '<br>';
@@ -39,6 +41,7 @@ else if ($method == 'GET') {
 	switch ($cmd) {
 		case GetPlan::API: $obj = new GetPlan($request); break;
 		case GetPlans::API: $obj = new GetPlans($request); break;
+		case GetPlanSum::API: $obj = new GetPlanSum($request); break;
 		case GetTeam::API: $obj = new GetTeam($request); break;
 		case GetTeams::API: $obj = new GetTeams($request); break;
 		case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
@@ -47,6 +50,7 @@ else if ($method == 'GET') {
 		case GetProjects::API: $obj = new GetProjects($request); break;
 		case GetQuota::API: $obj = new GetQuota($request); break;
 		case GetQuotas::API: $obj = new GetQuotas($request); break;
+		case GetQuotaSum::API: $obj = new GetQuotaSum($request); break;
 	}
 }
 
@@ -169,7 +173,7 @@ class GetPlan extends ServiceEndPoint {
 }
 
 class GetPlans extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /plans/{startPeriod}/{length}, get aggregated project resource plans for all projects within a given time intervall.';
+	const DESCRIPTION = 'GET /plans/{startPeriod}/{length}, get resource plans for all projects within a given time intervall, i.e. how much total resources each project requests.';
 	const API = 'plans';
 
 	public function __construct($request) {
@@ -180,6 +184,22 @@ class GetPlans extends ServiceEndPoint {
 		$startPeriod = $this->request[1];
 		$length = $this->request[2];
 		list($rc, $this->reply) = $this->plupp->getPlans($startPeriod, $length);
+		return $rc === true;
+	}
+}
+
+class GetPlanSum extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /plansum/{startPeriod}/{length}, get the total sum of requested resources for all projects within a given time intervall.';
+	const API = 'plansum';
+
+	public function __construct($request) {
+		parent::__construct($request, 2);
+	}
+
+	protected function service() {
+		$startPeriod = $this->request[1];
+		$length = $this->request[2];
+		list($rc, $this->reply) = $this->plupp->getPlanSum($startPeriod, $length);
 		return $rc === true;
 	}
 }
@@ -224,6 +244,22 @@ class GetQuotas extends ServiceEndPoint {
 		$startPeriod = $this->request[1];
 		$length = $this->request[2];
 		list($rc, $this->reply) = $this->plupp->getQuotas($startPeriod, $length);
+		return $rc === true;
+	}
+}
+
+class GetQuotaSum extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /quotasum/{startPeriod}/{length}, get the total sum of project resource quotas for all projects within a given time intervall.';
+	const API = 'quotasum';
+
+	public function __construct($request) {
+		parent::__construct($request, 2);
+	}
+
+	protected function service() {
+		$startPeriod = $this->request[1];
+		$length = $this->request[2];
+		list($rc, $this->reply) = $this->plupp->GetQuotaSum($startPeriod, $length);
 		return $rc === true;
 	}
 }

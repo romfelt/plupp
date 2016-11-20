@@ -6,19 +6,20 @@
 function quotasTable(startPeriod, length) {
 	var projects = Plupp.getProjects();
 	var quotas = Plupp.getQuotas(startPeriod, length);
+	var requested = Plupp.getPlanSum(startPeriod, length);
 
 	// $.when.apply($, my_array);
 	$.when(
-		quotas.run(), projects.run()
+		quotas.run(), projects.run(), requested.run()
 	)
 	.then(function() {
 		var t = new PluppTable('Project Quotas', 'month', startPeriod, length, 'quotas');
 		t.addDataSection(projects.reply.data, quotas.reply.data, 'editable');
 		t.addSum();
 		t.addDataRow('Available', [], 'header');
-		t.addDelta();
-		t.addDataRow('Requested', [], 'header');
-		t.addDelta();
+		t.addDelta(); // delta = available - sum
+		t.addDataRow('Requested', requested.reply.data, 'header');
+		t.addDelta(-4, -1); // delta = sum - requested
 		t.addButtons();
 		t.build(true, $('#table-container'));
 	})
@@ -31,16 +32,17 @@ function quotasTable(startPeriod, length) {
 function plansTable(startPeriod, length) {
 	var projects = Plupp.getProjects();
 	var plans = Plupp.getPlans(startPeriod, length);
+	var quotas = Plupp.getQuotaSum(startPeriod, length);
 
 	$.when(
-		plans.run(), projects.run()
+		plans.run(), projects.run(), quotas.run()
 	)
 	.then(function() {
 		var t = new PluppTable('Project Resource Plans', 'month', startPeriod, length);
 		t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
 		t.addSum();
-		t.addDataRow('Available', [], 'header');
-		t.addDelta();
+		t.addDataRow('Quotas', quotas.reply.data, 'header');
+		t.addDelta(); // delta = quota - sum
 		t.build(false, $('#table-container'));
 	})
 	.fail(function() {
@@ -67,7 +69,7 @@ function projectTable(projectId, startPeriod, length) {
 		t.addDataSection(teams.reply.data, plan.reply.data, 'editable');
 		t.addSum();
 		t.addDataRow('Quota', quota.reply.data, 'header');
-		t.addDelta();
+		t.addDelta(); // delta = quota - sum
 		t.addButtons();
 		t.build(true, $('#table-container'));	
 	})
@@ -89,7 +91,7 @@ function teamsTable(startPeriod, length) {
 		t.addDataSection(teams.reply.data, plans.reply.data, 'constant');
 		t.addSum();
 		t.addDataRow('Available', [], 'header');
-		t.addDelta();
+		t.addDelta(); // delta = available - sum
 		t.build(false, $('#table-container'));
 	})
 	.fail(function() {
@@ -115,13 +117,47 @@ function teamTable(teamId, startPeriod, length) {
 		t.addDataSection(projects.reply.data, teamPlans.reply.data, 'constant');
 		t.addSum();
 		t.addDataRow('Available', [], 'header');
-		t.addDelta();
+		t.addDelta(); // delta = available - sum
 		t.build(false, $('#table-container'));
 	})
 	.fail(function() {
 		// @TODO 
 		console.log( "something went wrong!" );
 	});
+}
+
+
+PluppChart = {
+	stackedArea: function(containerId, data) {
+		var d1 = [];
+		for (var i = 0; i <= 10; i += 1) {
+			d1.push([i, parseInt(Math.random() * 30)]);
+		}
+
+		var d2 = [];
+		for (var i = 0; i <= 10; i += 1) {
+			d2.push([i, parseInt(Math.random() * 30)]);
+		}
+
+		var d3 = [];
+		for (var i = 0; i <= 10; i += 1) {
+			d3.push([i, parseInt(Math.random() * 30)]);
+		}
+
+		$.plot('#' + containerId, [ d1, d2, d3 ], {
+			series: {
+				stack: 0,
+				lines: {
+					show: true,
+					fill: true
+				}
+			},
+			grid: {
+				borderWidth: 0,
+				margin: 10
+			}
+		});
+	}
 }
 
 function showView(view) {
@@ -135,8 +171,3 @@ function showView(view) {
 		teamsTable(11, 24);
 	}
 }
-
-$(document).ready(function() {
-	console.log("Plupp is ready!");
-	teamTable(3, 11, 24);
-});

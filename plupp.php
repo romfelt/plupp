@@ -87,6 +87,16 @@ class Plupp
 		return $this->_getQuery($sql);
 	}
 
+	public function getPlanSum($startPeriod, $length) {
+		$endPeriod = $startPeriod + $length;
+		$sql = "SELECT p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
+			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
+			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
+			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.period ORDER BY p.period ASC";
+
+		return $this->_getQuery($sql);
+	}
+
 	public function setQuotas($data, $projectIdKey, $periodKey, $valueKey) {
 		$sql = "INSERT INTO " . self::TABLE_QUOTA . " (projectId, period, value) VALUES";
 		$i = 0;
@@ -116,6 +126,16 @@ class Plupp
 			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
 			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
+
+		return $this->_getQuery($sql);
+	}
+
+	public function getQuotaSum($startPeriod, $length) {
+		$endPeriod = $startPeriod + $length;
+		$sql = "SELECT p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
+			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
+			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
+			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.period ORDER BY p.period ASC";
 
 		return $this->_getQuery($sql);
 	}

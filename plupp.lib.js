@@ -2,7 +2,6 @@
 // @TODO add last updated timestamp to each view
 // @TODO make projects and teams clickable to navigate further into details
 // @TODO integrate graph library: area, bars, heat-map pie charts (project/teams)
-// @TODO add APIs for totals Quotas, Resources, Plans/Requests, ...
 
 function PluppRequest(service, data) {
 	var self = this; // keep reference to this object to be used independent of call context
@@ -72,14 +71,20 @@ Plupp = {
 	getPlans:function(startPeriod, length) {
 		return new PluppRequest("plans/" + startPeriod + "/" + length);
 	},
-	getQuota:function(projectId, startPeriod, length) {
-		return new PluppRequest("quota/" + projectId + "/" + startPeriod + "/" + length);
+	getPlanSum:function(startPeriod, length) {
+		return new PluppRequest("plansum/" + startPeriod + "/" + length);
 	},
 	setQuotas:function(data) {
 		return new PluppRequest("quotas", data);
 	},
+	getQuota:function(projectId, startPeriod, length) {
+		return new PluppRequest("quota/" + projectId + "/" + startPeriod + "/" + length);
+	},
 	getQuotas:function(startPeriod, length) {
 		return new PluppRequest("quotas/" + startPeriod + "/" + length);
+	},
+	getQuotaSum:function(startPeriod, length) {
+		return new PluppRequest("quotasum/" + startPeriod + "/" + length);
 	}
 }
 
@@ -142,8 +147,12 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		self.table.push({'type': 'sum', 'title': 'Sum', 'columns': self.length});
 	}
 
-	this.addDelta = function() {
-		self.table.push({'type': 'delta', 'title': 'Delta', 'columns': length});
+	// Delta is calculated as cell(A) - cell(B), where rowA is the relative row index from 'this'
+	// row. Default is: delta(n) = cell(n-1) - cell(n-2).
+	this.addDelta = function(rowA, rowB) {
+		var a = isNaN(rowA) ? -1 : rowA;
+		var b = isNaN(rowB) ? -2 : rowB;
+		self.table.push({'type': 'delta', 'title': 'Delta', 'columns': length, 'rowA': a, 'rowB': b});
 	}
 
 	// set or get cell value
@@ -189,10 +198,19 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 
 	this.updateDeltas = function() {
 		$('#' + self.tableId + ' .cell-delta').each(function(i, e) {
+		    var tr = $(e).closest('tr');
 			var c = $(e).index();
-		    var r = $(e).closest('tr').index();
-			var s = self.delta(c, r - 1, c, r - 2);
+		    var r = tr.index();
+			var s = self.delta(c, r + tr.data('rowA'), c, r + tr.data('rowB'));
+
+			// set new value and class accordingly
 			$(e).text(s);
+			if (s < 0) {
+				$(e).addClass('cell-delta-negative');
+			}
+			else {
+				$(e).removeClass('cell-delta-negative');
+			}
 		});
 	}
 
@@ -230,7 +248,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 				self.addCells(tr, obj.data, 'cell');
 			}
 			else if (obj.type == 'constant') {
-				self.addCells(tr, obj.data, 'cell');
+				self.addCells(tr, obj.data, 'cell-constant');
 			}
 			else if (obj.type == 'header') {
 				self.addCells(tr, obj.data, 'cell-header');
@@ -239,6 +257,8 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 				self.addCells(tr, new Array(obj.columns), 'cell-sum');
 			}
 			else if (obj.type == 'delta') {
+				tr.data('rowA', obj.rowA);
+				tr.data('rowB', obj.rowB);
 				self.addCells(tr, new Array(obj.columns), 'cell-delta');
 			}
 

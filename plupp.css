@@ -63,8 +63,22 @@ tr:nth-child(even) {
 	background-color: #f2f2f2
 }
 
+.cell {
+}
+
 .cell-header {
 	font-weight: bold;
+}
+
+.cell-constant {
+}
+
+.cell-delta {
+	font-weight: bold;
+}
+
+.cell-delta-negative {
+	background-color: #fcc;
 }
 
 .cell-sum {
@@ -72,7 +86,7 @@ tr:nth-child(even) {
 }
 
 .cell-dirty {
-	background-color: #ccc;
+	background-color: #ccf;
 }
 
 td:focus {
