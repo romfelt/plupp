@@ -99,8 +99,8 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 	this.getArray = function(length, startValue, increment) {
 		var data = [];
 		for (var i = 0; i < length; i++) {
-	    	data.push(startValue);
-	    	startValue += increment;
+			data.push(startValue);
+			startValue += increment;
 		}
 		return data;
 	}
@@ -108,7 +108,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 	self.zeroes = self.getArray(length, 0, 0);
 	if (periodType == 'month') {
 		var months = self.getArray(length, startPeriod, 1);
-		self.table = [{'type': 'time', 'title': 'Month', 'data': months}]; 
+		self.table = [{'type': 'time', 'title': 'Month', 'data': months}];
 	}
 
 	this.addDataSection = function(titles, values, type) {
@@ -128,14 +128,14 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 				lookup[v.id].data[v.period - self.startPeriod] = v.value;
 			}
 		});
-	}	
+	}
 
 	this.addDataRow = function(title, values, type) {
 		var data = self.zeroes.slice(); // make copy of array to create new object
 		$.each(values, function(i, v) {
 			data[v.period - self.startPeriod] = v.value;
 		});
-		self.table.push({'type': type, 'title': title, 'data': data});  
+		self.table.push({'type': type, 'title': title, 'data': data});
 	}
 
 	this.addSum = function() {
@@ -212,7 +212,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 
 	// @TODO keep this? Or decide automatically when build()-ing with or without support for editing?
 	this.addButtons = function() {
-		self.buttons = true;		
+		self.buttons = true;
 	}
 
 	this.build = function(editable, container) {
@@ -227,7 +227,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 			}
 			else if (obj.type == 'editable') {
 				tr.data('id', obj.id); // row id used for interfacing with database, such as projectId or teamId
-				self.addCells(tr, obj.data, 'cell');			
+				self.addCells(tr, obj.data, 'cell');
 			}
 			else if (obj.type == 'constant') {
 				self.addCells(tr, obj.data, 'cell');
@@ -254,13 +254,13 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 			$('#buttons').hide();
 
 			var save = $('<button id="save">Save changes</button>')
-				.click(function() { 
-					self.post(); 
+				.click(function() {
+					self.post();
 				})
 				.addClass('button button-save');
 
 			var cancel = $('<button id="undo">Undo</button>')
-				.click(function() { 
+				.click(function() {
 					$('#' + self.tableId + ' td.cell-dirty').each(function(i, e) {
 						$(e).text($(e).data('value')).removeClass('cell-dirty');
 					});
@@ -278,11 +278,11 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 			table.editableTableWidget();
 
 			$('td.cell').on('validate', function(e, newValue) {
-				if (isNaN(newValue)) { 
-					return false; // mark cell as invalid 
+				if (isNaN(newValue)) {
+					return false; // mark cell as invalid
 				}
 			});
-			
+
 			$('td.cell').on('change', function(e, newValue) {
 				$(e.target).addClass('cell-dirty');
 				$('#buttons').fadeIn();
@@ -331,7 +331,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		)
 		.then(function() {
 			if (request.status != true) {
-				alert("request failed");				
+				alert("request failed");
 			}
 			else {
 				// remove dirty styling and store new value to data field to enable undo again
