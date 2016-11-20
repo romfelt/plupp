@@ -12,11 +12,12 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo SetPlan::DESCRIPTION . '<br>';
 	echo GetPlan::DESCRIPTION . '<br>';
 	echo GetPlans::DESCRIPTION . '<br>';
-	echo SetQuota::DESCRIPTION . '<br>';
+	echo SetQuotas::DESCRIPTION . '<br>';
 	echo GetQuota::DESCRIPTION . '<br>';
 	echo GetQuotas::DESCRIPTION . '<br>';
 	echo GetProject::DESCRIPTION . '<br>';
 	echo GetProjects::DESCRIPTION . '<br>';
+	echo GetTeam::DESCRIPTION . '<br>';
 	echo GetTeams::DESCRIPTION . '<br>';
 	echo GetTeamPlans::DESCRIPTION . '<br>';
 	echo GetTeamsPlan::DESCRIPTION . '<br>';
@@ -38,6 +39,7 @@ else if ($method == 'GET') {
 	switch ($cmd) {
 		case GetPlan::API: $obj = new GetPlan($request); break;
 		case GetPlans::API: $obj = new GetPlans($request); break;
+		case GetTeam::API: $obj = new GetTeam($request); break;
 		case GetTeams::API: $obj = new GetTeams($request); break;
 		case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
 		case GetTeamsPlan::API: $obj = new GetTeamsPlan($request); break;
@@ -133,7 +135,7 @@ class ServiceEndPoint {
 
 // JSON data in body
 class SetPlan extends ServiceEndPoint {
-	const DESCRIPTION = 'POST /plan/{projectId}, set new project resource plan';
+	const DESCRIPTION = 'POST /plan/{projectId}, set new project resource plan.';
 	const API = 'plan';
 
 	public function __construct($request) {
@@ -149,7 +151,7 @@ class SetPlan extends ServiceEndPoint {
 }
 
 class GetPlan extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /plan/{projectId}/{startPeriod}/{length}, get detailed project resource plan with team break-down within a given time intervall';
+	const DESCRIPTION = 'GET /plan/{projectId}/{startPeriod}/{length}, get detailed project resource plan with team break-down within a given time intervall.';
 	const API = 'plan';
 
 	public function __construct($request) {
@@ -167,7 +169,7 @@ class GetPlan extends ServiceEndPoint {
 }
 
 class GetPlans extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /plans/{startPeriod}/{length}, get aggregated project resource plans for all projects within a given time intervall';
+	const DESCRIPTION = 'GET /plans/{startPeriod}/{length}, get aggregated project resource plans for all projects within a given time intervall.';
 	const API = 'plans';
 
 	public function __construct($request) {
@@ -183,7 +185,7 @@ class GetPlans extends ServiceEndPoint {
 }
 
 class SetQuotas extends ServiceEndPoint {
-	const DESCRIPTION = 'POST /quotas, set new project quotas';
+	const DESCRIPTION = 'POST /quotas, set new project quotas.';
 	const API = 'quotas';
 
 	protected function service() {
@@ -194,7 +196,7 @@ class SetQuotas extends ServiceEndPoint {
 }
 
 class GetQuota extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /quota/{projectId}/{startPeriod}/{length}, get project resource quotas for a specific project within a given time intervall';
+	const DESCRIPTION = 'GET /quota/{projectId}/{startPeriod}/{length}, get project resource quotas for a specific project within a given time intervall.';
 	const API = 'quota';
 
 	public function __construct($request) {
@@ -206,13 +208,12 @@ class GetQuota extends ServiceEndPoint {
 		$startPeriod = $this->request[2];
 		$length = $this->request[3];
 		list($rc, $this->reply) = $this->plupp->getQuota($projectId, $startPeriod, $length);
-		$this->reply['projectId'] = $projectId;
 		return $rc === true;
 	}
 }
 
 class GetQuotas extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /quotas/{startPeriod}/{length}, get project resource quotas for all projects within a given time intervall';
+	const DESCRIPTION = 'GET /quotas/{startPeriod}/{length}, get project resource quotas for all projects within a given time intervall.';
 	const API = 'quotas';
 
 	public function __construct($request) {
@@ -227,8 +228,23 @@ class GetQuotas extends ServiceEndPoint {
 	}
 }
 
+class GetTeam extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /team/{teamId}, get team information for a specific team.';
+	const API = 'team';
+
+	public function __construct($request) {
+		parent::__construct($request, 1);
+	}
+
+	protected function service() {
+		$teamId = $this->request[1];
+		list($rc, $this->reply) = $this->plupp->getTeam($teamId);
+		return $rc === true;
+	}
+}
+
 class GetTeams extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /teams, get list of teams and team information ';
+	const DESCRIPTION = 'GET /teams, get list of teams and team information.';
 	const API = 'teams';
 
 	protected function service() {
@@ -238,7 +254,7 @@ class GetTeams extends ServiceEndPoint {
 }
 
 class GetTeamsPlan extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /teamsplan/{startPeriod}/{length}, get aggregated project resource plans for all teams within a given time intervall';
+	const DESCRIPTION = 'GET /teamsplan/{startPeriod}/{length}, get aggregated project resource plan for all teams within a given time intervall, i.e. how much of each team is requested by the total project portfolio.';
 	const API = 'teamsplan';
 
 	public function __construct($request) {
@@ -254,7 +270,7 @@ class GetTeamsPlan extends ServiceEndPoint {
 }
 
 class GetTeamPlans extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /teamplans/{teamId}/{startPeriod}/{length}, get all project resource plans for a team within a given time intervall';
+	const DESCRIPTION = 'GET /teamplans/{teamId}/{startPeriod}/{length}, get all project resource plans for a team within a given time intervall, i.e. how much is a team requested by each project.';
 	const API = 'teamplans';
 
 	public function __construct($request) {
@@ -271,7 +287,7 @@ class GetTeamPlans extends ServiceEndPoint {
 }
 
 class GetProjects extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /projects, get list of projects and project information';
+	const DESCRIPTION = 'GET /projects, get list of projects and project information.';
 	const API = 'projects';
 
 	protected function service() {
@@ -281,7 +297,7 @@ class GetProjects extends ServiceEndPoint {
 }
 
 class GetProject extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /project/{projectId}, get project information for a specific project';
+	const DESCRIPTION = 'GET /project/{projectId}, get project information for a specific project.';
 	const API = 'project';
 
 	public function __construct($request) {

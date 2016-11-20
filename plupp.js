@@ -1,3 +1,7 @@
+// @TODO date formatting
+// @TODO add last updated timestamp to each view
+// @TODO make projects and teams clickable to navigate further into details
+// @TODO integrate graph library: area, bars, heat-map pie charts (project/teams)
 
 function PluppRequest(service, data) {
 	var self = this; // keep reference to this object to be used independent of call context
@@ -46,8 +50,17 @@ Plupp = {
 	getProjects:function() {
 		return new PluppRequest("projects");
 	},
+	getTeam:function(teamId) {
+		return new PluppRequest("team/" + teamId);
+	},
 	getTeams:function() {
 		return new PluppRequest("teams");
+	},
+	getTeamsPlan:function(startPeriod, length) {
+		return new PluppRequest("teamsplan/" + "/" + startPeriod + "/" + length);
+	},
+	getTeamPlans:function(teamId, startPeriod, length) {
+		return new PluppRequest("teamplans/" + teamId + "/" + startPeriod + "/" + length);
 	},
 	setPlan:function(projectId, data) {
 		return new PluppRequest("plan/" + projectId, data);
@@ -411,14 +424,14 @@ function projectTable(projectId, startPeriod, length) {
 
 function teamsTable(startPeriod, length) {
 	var teams = Plupp.getTeams();
-	var plans = Plupp.getPlans(startPeriod, length);
+	var plans = Plupp.getTeamsPlan(startPeriod, length);
 
 	$.when(
-		plans.run(), projects.run()
+		plans.run(), teams.run()
 	)
 	.then(function() {
-		var t = new Table('Team Resource Requests', 'month', startPeriod, length);
-		t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
+		var t = new Table('Teams Resource Requests', 'month', startPeriod, length);
+		t.addDataSection(teams.reply.data, plans.reply.data, 'constant');
 		t.addSum();
 		t.addDataRow('Available', [], 'header');
 		t.addDelta();
@@ -431,6 +444,29 @@ function teamsTable(startPeriod, length) {
 }
 
 function teamTable(teamId, startPeriod, length) {
+	var team = Plupp.getTeam(teamId);
+	var teamPlans = Plupp.getTeamPlans(teamId, startPeriod, length);
+	var projects = Plupp.getProjects();
+
+	$.when(
+		team.run(), teamPlans.run(), projects.run()
+	)
+	.then(function() {
+		var title = 'Team Resource Requests: ';
+		if (typeof(team.reply.data) != 'undefined') {
+			title += team.reply.data[0].name;
+		}
+		var t = new Table(title, 'month', startPeriod, length);
+		t.addDataSection(projects.reply.data, teamPlans.reply.data, 'constant');
+		t.addSum();
+		t.addDataRow('Available', [], 'header');
+		t.addDelta();
+		t.build(false, $('#table-container'));
+	})
+	.fail(function() {
+		// @TODO 
+		console.log( "something went wrong!" );
+	});
 }
 
 function showView(view) {
@@ -447,6 +483,6 @@ function showView(view) {
 
 $(document).ready(function() {
 	console.log("Plupp is ready!");
-	plansTable(11, 24);
+	teamTable(3, 11, 24);
 });
 

@@ -43,7 +43,7 @@ class Plupp
 	private function _getQuery($sql) {
 		$result = $this->db->query($sql);
 		if ($result === false) {
-			return array(false, error());
+			return array(false, $this->error());
 		}	
 
 		return array(true, $this->_fetachAll($result));
@@ -70,9 +70,9 @@ class Plupp
 	public function getPlan($projectId, $startPeriod, $length) {
 		$endPeriod = $startPeriod + $length;
 		$sql = "SELECT p.teamId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
-			   "    SELECT teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY teamId, period" .
+			   "    SELECT teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE projectId = $projectId GROUP BY teamId, period" .
 			   ") r ON p.timestamp = r.latest AND p.teamId = r.teamId AND p.period = r.period " .
-			   "WHERE p.projectId=$projectId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.period ASC";
+			   "WHERE p.projectId = $projectId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
@@ -103,9 +103,9 @@ class Plupp
 	public function getQuota($projectId, $startPeriod, $length) {
 		$endPeriod = $startPeriod + $length;
 		$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
-			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
+			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " WHERE projectId = $projectId GROUP BY projectId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-			   "WHERE p.projectId=$projectId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.period ASC";
+			   "WHERE p.projectId = $projectId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
@@ -120,16 +120,32 @@ class Plupp
 		return $this->_getQuery($sql);
 	}
 
+	public function getTeam($teamId) {
+		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " WHERE id = $teamId");
+	}
+
 	public function getTeams() {
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " ORDER BY name ASC");
 	}
 
 	public function getTeamsPlan($startPeriod, $length) {
-		return array(false, 'Not implemented');
+		$endPeriod = $startPeriod + $length;
+		$sql = "SELECT p.teamId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
+			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
+			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
+			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.teamId, p.period ORDER BY p.teamId ASC, p.period ASC";
+
+		return $this->_getQuery($sql);
 	}
 
 	public function getTeamPlans($teamId, $startPeriod, $length) {
-		return array(false, 'Not implemented');
+		$endPeriod = $startPeriod + $length;
+		$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
+			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE teamId = $teamId GROUP BY projectId, period" .
+			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
+			   "WHERE p.teamId = $teamId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.projectId ASC, p.period ASC";
+
+		return $this->_getQuery($sql);
 	}
 
 	public function getProjects() {
@@ -137,7 +153,7 @@ class Plupp
 	}
 
 	public function getProject($projectId) {
-		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_PROJECT . " WHERE id=$projectId ORDER BY name ASC");
+		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_PROJECT . " WHERE id = $projectId");
 	}
 
 	public function escape($str) { }
