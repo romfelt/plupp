@@ -1,5 +1,9 @@
 <?php
 
+// @TODO add real_escape to prevent injection via strings
+// @TODO add casting integer to avoid SQL injection
+//       $aid = (int) $_GET['aid'];
+
 // 
 // Class for interacting with the Plupp MySQL database
 //
@@ -80,7 +84,7 @@ class Plupp {
 			if ($i++ > 0) {
 				$sql .= ',';
 			}
-			$sql .= " ($projectId, $v[$teamIdKey], $v[$periodKey], $v[$valueKey])";
+			$sql .= " ('$projectId', '$v[$teamIdKey]', '$v[$periodKey]', '$v[$valueKey]')";
 		}
 
 		return $this->_setQuery($sql);
@@ -89,9 +93,9 @@ class Plupp {
 	public function getPlan($projectId, $startPeriod, $length) {
 		$endPeriod = $startPeriod + $length;
 		$sql = "SELECT p.teamId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
-			   "    SELECT teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE projectId = $projectId GROUP BY teamId, period" .
+			   "    SELECT teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE projectId = '$projectId' GROUP BY teamId, period" .
 			   ") r ON p.timestamp = r.latest AND p.teamId = r.teamId AND p.period = r.period " .
-			   "WHERE p.projectId = $projectId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.period ASC";
+			   "WHERE p.projectId = '$projectId' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
@@ -101,7 +105,7 @@ class Plupp {
 		$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
 			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
-			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
+			   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
@@ -111,7 +115,7 @@ class Plupp {
 		$sql = "SELECT p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
 			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
-			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.period ORDER BY p.period ASC";
+			   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.period ORDER BY p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
@@ -123,7 +127,7 @@ class Plupp {
 			if ($i++ > 0) {
 				$sql .= ',';
 			}
-			$sql .= " ($v[$projectIdKey], $v[$periodKey], $v[$valueKey])";
+			$sql .= " ('$v[$projectIdKey]', '$v[$periodKey]', '$v[$valueKey]')";
 		}
 
 		return $this->_setQuery($sql);
@@ -132,9 +136,9 @@ class Plupp {
 	public function getQuota($projectId, $startPeriod, $length) {
 		$endPeriod = $startPeriod + $length;
 		$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
-			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " WHERE projectId = $projectId GROUP BY projectId, period" .
+			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " WHERE projectId = '$projectId' GROUP BY projectId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-			   "WHERE p.projectId = $projectId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.period ASC";
+			   "WHERE p.projectId = '$projectId' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
@@ -144,7 +148,7 @@ class Plupp {
 		$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
 			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
+			   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
@@ -154,13 +158,13 @@ class Plupp {
 		$sql = "SELECT p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
 			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.period ORDER BY p.period ASC";
+			   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.period ORDER BY p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
 
 	public function getTeam($teamId) {
-		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " WHERE id = $teamId");
+		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " WHERE id = '$teamId'");
 	}
 
 	public function getTeams() {
@@ -172,7 +176,7 @@ class Plupp {
 		$sql = "SELECT p.teamId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
 			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
-			   "WHERE p.period >= $startPeriod AND p.period < $endPeriod GROUP BY p.teamId, p.period ORDER BY p.teamId ASC, p.period ASC";
+			   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.teamId, p.period ORDER BY p.teamId ASC, p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
@@ -180,9 +184,9 @@ class Plupp {
 	public function getTeamPlans($teamId, $startPeriod, $length) {
 		$endPeriod = $startPeriod + $length;
 		$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
-			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE teamId = $teamId GROUP BY projectId, period" .
+			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE teamId = '$teamId' GROUP BY projectId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-			   "WHERE p.teamId = $teamId AND p.period >= $startPeriod AND p.period < $endPeriod ORDER BY p.projectId ASC, p.period ASC";
+			   "WHERE p.teamId = '$teamId' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.projectId ASC, p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
@@ -222,7 +226,7 @@ class Plupp {
 
 	private function _loginByDB($username, $password) {
 		$passhash = md5($password);
-		$sql = "SELECT username, id FROM " . self::TABLE_USER . " WHERE local = '1' AND username = '$username' AND password = '$passhash' LIMIT 1";
+		$sql = "SELECT username, id FROM " . self::TABLE_USER . " WHERE local = '1' AND BINARY username = '$username' AND password = '$passhash' LIMIT 1";
 
 		list($rc, $result) = $this->_doQuery($sql);
 
