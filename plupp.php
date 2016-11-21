@@ -3,12 +3,13 @@
 // 
 // Class for interacting with the Plupp MySQL database
 //
-class Plupp
-{
+class Plupp {
 	const TABLE_QUOTA = 'quota';
 	const TABLE_TEAM = 'team';
 	const TABLE_PLAN = 'plan';
 	const TABLE_PROJECT = 'project';
+	const TABLE_USER = 'user';
+	const TABLE_SESSION = 'session';
 
 	// @TODO return error message
 	public function __construct($host, $user, $password, $database) {
@@ -33,17 +34,27 @@ class Plupp
 	private function _fetachAll($result) {
 		$data = array();
 		if ($result->num_rows > 0) {
-		    while ($r = $result->fetch_assoc()) {
+			while ($r = $result->fetch_assoc()) {
 				$data['data'][] = $r;
-		    }
+			}
 		}
 		return $data;
+	}
+
+	// performs query and returns result on success
+	private function _doQuery($sql) {
+		$result = $this->db->query($sql);
+		if ($result === false) {
+			return array(false, $this->_error($sql));
+		}
+
+		return array(true, $result);
 	}
 
 	private function _getQuery($sql) {
 		$result = $this->db->query($sql);
 		if ($result === false) {
-			return array(false, $this->error());
+			return array(false, $this->_error($sql));
 		}	
 
 		return array(true, $this->_fetachAll($result));
@@ -51,7 +62,15 @@ class Plupp
 
 	private function _setQuery($sql) {
 		$result = $this->db->query($sql) === true;
-		return array($result, $result !== true ? error() : '');
+		return array($result, $result !== true ? $this->_error($sql) : '');
+	}
+
+	// @TODO add debug flag to enable this
+	private function _error($sql) {
+		if ($this->db->errno) {
+		    return 'MySQL error (' . $this->db->errno . ') ' . $this->db->error . ', caused by call: ' . $sql;
+		}
+		return true;
 	}
 
 	public function setPlan($projectId, $data, $teamIdKey, $periodKey, $valueKey) {
@@ -176,20 +195,57 @@ class Plupp
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_PROJECT . " WHERE id = $projectId");
 	}
 
-	public function escape($str) { }
+	private function _loginByLDAP($username, $password) {
+		// @TODO make LDAP settings configurable
+		$server = 'ldap://zone2.flir.net';
+		$ldaprdn = 'zone2' . "\\" . $username;
+		$rc = false;
+		$error = '';
 
-	public function error() {
-		if ($this->db->errno) {
-		    return 'MySQL error (' . $this->db->errno . ') ' . $this->db->error;
+		if ($ldap = @ldap_connect($server)) {
+			ldap_set_option($ldap, LDAP_OPT_PROTOCOL_VERSION, 3);
+			ldap_set_option($ldap, LDAP_OPT_REFERRALS, 0);
+			if (@ldap_bind($ldap, $ldaprdn, $password)) {
+				$rc = true;
+			}
+			else {
+				$error = 'Failed to bind to LDAP server';
+			}
+			ldap_close($ldap);
 		}
-		return true;
+		else {
+			$error = 'Unable to connect to LDAP server';
+		}
+
+		return array($rc, $error);
+	}
+
+	private function _loginByDB($username, $password) {
+		$passhash = md5($password);
+		$sql = "SELECT username, id FROM " . self::TABLE_USER . " WHERE local = '1' AND username = '$username' AND password = '$passhash' LIMIT 1";
+
+		list($rc, $result) = $this->_doQuery($sql);
+
+		if ($rc === true && $result->num_rows > 0 && $row = $result->fetch_assoc()) {
+			return array(true, array('data' => $row));
+		}
+
+		return array(false, $result);
+	}
+
+	public function doLogin($username, $password) {
+		list($rc, $result) = $this->_loginByDB($username, $password);
+		if ($rc !== true) {
+		//	list($rc, $result) = $this->_loginByLDAP($username, $password);
+		}
+
+		//addSession($user, $status);
+		return array($rc === true, $result);
 	}
 
 	public function initializeTables() {
 		// @TODO make it possible to create SQL tables in an empty database
 	}
-
 }
-
 
 ?>

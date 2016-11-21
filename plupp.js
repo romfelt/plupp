@@ -1,6 +1,5 @@
 // @TODO date formatting
 // @TODO add last updated timestamp to each view
-// @TODO make projects and teams clickable to navigate further into details
 // @TODO integrate graph library: area, bars, heat-map pie charts (project/teams)
 
 function quotasTable(startPeriod, length) {
@@ -181,3 +180,21 @@ function showView(view) {
 		teamsTable(11, 24);
 	}
 }
+
+
+function login(username, password) {
+	var l = Plupp.login(username, password);
+
+	$.when(
+		l.run()
+	)
+	.then(function() {
+		console.log("login success");
+		console.log(l.reply);
+	})
+	.fail(function() {
+		// @TODO 
+		console.log( "something went wrong!" );
+	});
+}
+

@@ -16,43 +16,7 @@
 				console.log("Plupp is ready!");
 //				teamTable(3, 11, 24);
 
-
 				PluppChart.stackedArea('chart-container', null);
-
-
-/*
-				var d1 = [];
-				for (var i = 0; i <= 10; i += 1) {
-					d1.push([i, parseInt(Math.random() * 30)]);
-				}
-
-				var d2 = [];
-				for (var i = 0; i <= 10; i += 1) {
-					d2.push([i, parseInt(Math.random() * 30)]);
-				}
-
-				var d3 = [];
-				for (var i = 0; i <= 10; i += 1) {
-					d3.push([i, parseInt(Math.random() * 30)]);
-				}
-
-				$.plot("#myfirstchart", [ d1, d2, d3 ], {
-					series: {
-						stack: 0,
-						lines: {
-							show: true,
-							fill: true
-						}
-					},
-					grid: {
-						borderWidth: 0,
-						margin: 10
-					}
-				});
-
-*/
-
-
 			});
 
 		</script>
@@ -69,6 +33,7 @@
 				<a onClick="showView('teams');">Teams</a>
 				<a onClick="showView('vacation');">Vacation</a>
 				<a onClick="showView('reports');">Reports</a>
+				<a onClick="login('romfelt', '****');">Login</a>
 			</div>
 		</div>
 		<div id="main">

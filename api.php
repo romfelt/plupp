@@ -23,6 +23,7 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetTeams::DESCRIPTION . '<br>';
 	echo GetTeamPlans::DESCRIPTION . '<br>';
 	echo GetTeamsPlan::DESCRIPTION . '<br>';
+	echo Login::DESCRIPTION . '<br>';
 	exit();
 }
 
@@ -35,6 +36,7 @@ if ($method == 'POST') {
 	switch ($cmd) {
 		case SetPlan::API: $obj = new SetPlan($request); break;
 		case SetQuotas::API: $obj = new SetQuotas($request); break;
+		case Login::API: $obj = new Login($request); break;
 	}
 }
 else if ($method == 'GET') {
@@ -59,8 +61,7 @@ if ($obj === null) {
 }
 
 $obj->run();
-
-
+exit();
 
 // Base class for API service end-point.
 // Extend this class and implement __constructor() and service() methods. Create an object and call run() method.
@@ -343,6 +344,23 @@ class GetProject extends ServiceEndPoint {
 	protected function service() {
 		$projectId = $this->request[1];
 		list($rc, $this->reply) = $this->plupp->getProject($projectId);
+		return $rc === true;
+	}
+}
+
+class Login extends ServiceEndPoint {
+	const DESCRIPTION = 'POST /login, login to system with JSON carrying data in body as {username: "username", password: "password"}.';
+	const API = 'login';
+
+	protected function service() {
+/*		if (!isset($_POST['username']) || !isset($_POST['password'])) {
+			$this-reply = 'Not enough data in post';
+			return self::BAD_REQUEST;
+		}
+		*/
+		$username = $_POST['username'];
+		$password = $_POST['password'];
+		list($rc, $this->reply) = $this->plupp->doLogin($username, $password);
 		return $rc === true;
 	}
 }

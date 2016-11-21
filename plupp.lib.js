@@ -1,7 +1,3 @@
-// @TODO date formatting
-// @TODO add last updated timestamp to each view
-// @TODO make projects and teams clickable to navigate further into details
-// @TODO integrate graph library: area, bars, heat-map pie charts (project/teams)
 
 function PluppRequest(service, data) {
 	var self = this; // keep reference to this object to be used independent of call context
@@ -44,6 +40,10 @@ function PluppRequest(service, data) {
 }
 
 Plupp = {
+	login:function(username, password) {
+		var data = { 'username': username, 'password': password };
+		return new PluppRequest("login", data);
+	},
 	getProject:function(projectId) {
 		return new PluppRequest("project/" + projectId);
 	},
