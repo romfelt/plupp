@@ -1,4 +1,3 @@
-
 //
 // Class for handlind a Plupp API request, keeps its data after request has completed
 //
@@ -100,6 +99,9 @@ Plupp = {
 	}
 }
 
+//
+// Class for building dynamic and interactive tables
+//
 function PluppTable(tableTitle, periodType, startPeriod, length, requestService, requestId) {
 	var self = this; // keep reference to this object to be used independent of call context
 	this.tableTitle = tableTitle;
@@ -110,7 +112,6 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 	this.requestId = requestId;
 	this.table = null;
 	this.zeroes = null;
-	this.buttons = false;
 
 	// returns array of length with pre-defined values
 	this.getArray = function(length, startValue, increment) {
@@ -241,11 +242,6 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		});
 	}
 
-	// @TODO keep this? Or decide automatically when build()-ing with or without support for editing?
-	this.addButtons = function() {
-		self.buttons = true;
-	}
-
 	this.build = function(editable, container, callback) {
 		var table = $('<table id="' + self.tableId + '"/>').addClass('edit-table');
 
@@ -267,8 +263,6 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 				});
 			}
 
-//			tr.append($("<td class='cell-header'/>").text(obj.title));
-//			tr.append($("<td class='cell-header'/>").append(a));
 			tr.append(td);
 			if (obj.type == 'time') {
 				self.addCells(tr, obj.data, 'cell-header');
@@ -300,7 +294,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		container.append(table);
 		self.updateTable();
 
-		if (self.buttons === true) {
+		if (editable === true) {
 			$('#buttons').hide();
 
 			var save = $('<button id="save">Save changes</button>')
@@ -322,9 +316,8 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 			// erase existing elements in button container and add buttons
 			$('#buttons').html(save);
 			$('#buttons').append(cancel);
-		}
 
-		if (editable === true) {
+			// enable table editing
 			table.editableTableWidget();
 
 			$('td.cell').on('validate', function(e, newValue) {

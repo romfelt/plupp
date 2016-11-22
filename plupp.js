@@ -95,7 +95,6 @@ function quotasTable(startPeriod, length) {
 		t.addDelta(); // delta = available - sum
 		t.addDataRow('Requested', requested.reply.data, 'header');
 		t.addDelta(-4, -1); // delta = sum - requested
-		t.addButtons();
 		t.build(true, $('#table-container'), function(projectId) {
 			projectTable(projectId, startPeriod, length);
 		});
@@ -149,7 +148,6 @@ function projectTable(projectId, startPeriod, length) {
 		t.addSum();
 		t.addDataRow('Quota', quota.reply.data, 'header');
 		t.addDelta(); // delta = quota - sum
-		t.addButtons();
 		t.build(true, $('#table-container'), function(teamId) {
 			teamTable(teamId, startPeriod, length);
 		});

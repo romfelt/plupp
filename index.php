@@ -1,6 +1,6 @@
 <html>
 	<head>
-		<title>Plupp 0.1</title>
+		<title>Plupp 0.5</title>
 		<meta charset="utf-8">
 		<link rel="stylesheet" type="text/css" href="plupp.css" />
 		<script src="jquery-3.1.1.min.js"></script>
@@ -9,19 +9,14 @@
 		<script src="editabletable.js"></script>
 		<script src="plupp.lib.js"></script>
 		<script src="plupp.js"></script>
-
 		<script>
-
 			$(document).ready(function() {
 				console.log("Plupp is ready!");
 				doSessionUpdate('menuSessionActive', 'menuSessionInactive');
 //				teamTable(3, 11, 24);
 				PluppChart.stackedArea('chart-container', null);
 			});
-
 		</script>
-
-
 	</head>
 	<body>
 		<div id="menu">
