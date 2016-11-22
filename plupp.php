@@ -1,5 +1,6 @@
 <?php
 
+// @TODO add CONFIG struct in separate file to allow configuration of multiple instances
 // @TODO add real_escape to prevent injection via strings
 // @TODO add casting integer to avoid SQL injection
 //       $aid = (int) $_GET['aid'];
@@ -230,14 +231,18 @@ class Plupp {
 
 		list($rc, $result) = $this->_doQuery($sql);
 
-		if ($rc === true && $result->num_rows > 0 && $row = $result->fetch_assoc()) {
-			return array(true, array('data' => $row));
+		if ($rc === true) {
+			if ($result->num_rows > 0) {
+				if ($row = $result->fetch_assoc()) {
+					return array(true, $row);
+				}
+			}
+			return array(false, 'username and password combination not found');
 		}
-
 		return array(false, $result);
 	}
 
-	public function doLogin($username, $password) {
+	public function verifyLogin($username, $password) {
 		list($rc, $result) = $this->_loginByDB($username, $password);
 		if ($rc !== true) {
 		//	list($rc, $result) = $this->_loginByLDAP($username, $password);
@@ -245,6 +250,14 @@ class Plupp {
 
 		//addSession($user, $status);
 		return array($rc === true, $result);
+	}
+
+	public function startSession($userId, $sessionId) {
+		return true;
+	}
+
+	public function endSession($sessionId) {
+		return true;
 	}
 
 	public function initializeTables() {

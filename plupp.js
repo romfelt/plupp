@@ -2,6 +2,82 @@
 // @TODO add last updated timestamp to each view
 // @TODO integrate graph library: area, bars, heat-map pie charts (project/teams)
 
+$.fn.center = function() {
+	this.css('position', 'fixed');
+	this.css('top', ($(window).height() / 2 - this.height() / 2) + 'px');
+	this.css('left', ($(window).width() / 2 - this.width() / 2) + 'px');
+	return this;
+}
+
+function showModal(modalId) {
+	$('#' + modalId).center().fadeIn();
+	$('#modal-bg').fadeIn();
+}
+
+function hideModal(modalId) {
+	$('#' + modalId).fadeOut();
+	$('#modal-bg').fadeOut();	
+}
+
+// check if there is an active session and update menu accordingly
+function doSessionUpdate(activeId, inactiveId) {
+	$('#' + activeId).hide();
+	$('#' + inactiveId).hide();
+
+	var session = Plupp.getSession();
+
+	$.when(
+		session.run()
+	)
+	.then(function() {
+		if (session.reply.request === true && session.reply.session === true) {
+			$('#' + activeId + ' a:first-child').html('Logout (' + session.reply.username + ')');
+			$('#' + activeId).show();
+			return;
+		}
+		// something went wrong or there is no active session, assume no session
+		$('#' + inactiveId).show();
+	})
+}
+
+function doLogin(usernameId, passwordId, messageId) {
+	var username = $('#' + usernameId).val();
+	var password = $('#' + passwordId).val();
+	var l = Plupp.login(username, password);
+
+	$.when(
+		l.run()
+	)
+	.then(function() {
+		console.log(l.reply);
+		if (l.reply.request === true) {
+			$('#' + messageId).html('').hide();
+			hideModal('loginForm');
+			doSessionUpdate('menuSessionActive', 'menuSessionInactive');
+		}
+		else {
+			$('#' + messageId).html("Login failed, please try again...").show();
+		}
+	})
+	.fail(function() {
+		$('#' + messageId).html("Login failed, please try again...").show();
+	});
+}
+
+function doLogout() {
+	var l = Plupp.logout();
+
+	$.when(
+		l.run()
+	)
+	.then(function() {
+		doSessionUpdate('menuSessionActive', 'menuSessionInactive');
+	})
+	.fail(function() {
+		doSessionUpdate('menuSessionActive', 'menuSessionInactive');
+	});
+}
+
 function quotasTable(startPeriod, length) {
 	var projects = Plupp.getProjects();
 	var quotas = Plupp.getQuotas(startPeriod, length);
@@ -179,22 +255,5 @@ function showView(view) {
 	else if (view == 'teams') {
 		teamsTable(11, 24);
 	}
-}
-
-
-function login(username, password) {
-	var l = Plupp.login(username, password);
-
-	$.when(
-		l.run()
-	)
-	.then(function() {
-		console.log("login success");
-		console.log(l.reply);
-	})
-	.fail(function() {
-		// @TODO 
-		console.log( "something went wrong!" );
-	});
 }
 

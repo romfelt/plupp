@@ -1,7 +1,15 @@
 <?php
 
-ini_set('display_errors', 'On');
-error_reporting(E_ALL | E_STRICT);
+// @TODO use session_commit() to signal system that session is no longer in use, may execute other scripts in parallel, faster ride?
+
+$DEBUG = true;
+
+if ($DEBUG === true) {
+	ini_set('display_errors', 'On');
+	error_reporting(E_ALL | E_STRICT);
+}
+
+session_start();
 
 // get the HTTP method, path and body of the request
 $method = $_SERVER['REQUEST_METHOD'];
@@ -23,7 +31,9 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetTeams::DESCRIPTION . '<br>';
 	echo GetTeamPlans::DESCRIPTION . '<br>';
 	echo GetTeamsPlan::DESCRIPTION . '<br>';
-	echo Login::DESCRIPTION . '<br>';
+	echo PostLogin::DESCRIPTION . '<br>';
+	echo GetSession::DESCRIPTION . '<br>';
+	echo GetLogout::DESCRIPTION . '<br>';
 	exit();
 }
 
@@ -36,7 +46,14 @@ if ($method == 'POST') {
 	switch ($cmd) {
 		case SetPlan::API: $obj = new SetPlan($request); break;
 		case SetQuotas::API: $obj = new SetQuotas($request); break;
-		case Login::API: $obj = new Login($request); break;
+		case PostLogin::API: $obj = new PostLogin($request); break;
+	}
+
+	// check if API requires that user is logged in to use it in order to make changes 
+	if ($obj != null && ServiceEndPoint::sessionIsValid() !== true) {
+		if ($obj->isAnonymousAllowed() !== true) {
+			ServiceEndPoint::replyAndDie(ServiceEndPoint::UNAUTHORIZED, 'Login in order to use this API');
+		}
 	}
 }
 else if ($method == 'GET') {
@@ -53,6 +70,8 @@ else if ($method == 'GET') {
 		case GetQuota::API: $obj = new GetQuota($request); break;
 		case GetQuotas::API: $obj = new GetQuotas($request); break;
 		case GetQuotaSum::API: $obj = new GetQuotaSum($request); break;
+		case GetSession::API: $obj = new GetSession($request); break;
+		case GetLogout::API: $obj = new GetLogout($request); break;
 	}
 }
 
@@ -66,8 +85,11 @@ exit();
 // Base class for API service end-point.
 // Extend this class and implement __constructor() and service() methods. Create an object and call run() method.
 class ServiceEndPoint {
+	const ANONYMOUS = true; // set to false in derived class to require a user session
+	const SESSION_HOURS = 48; // for how many hours is a session valid if not used 
 	const OK = 200;
 	const BAD_REQUEST = 400;
+	const UNAUTHORIZED = 401;
 	const SERVER_ERROR = 500;
 
 	protected $plupp;
@@ -92,6 +114,7 @@ class ServiceEndPoint {
 	}
 
 	public function run() {
+		self::sessionTouch(); // keep session alive
 		$this->init(); // will exit on fail
 		$rc = $this->service(); // run the service
 		$code = $rc === true ? self::OK : self::SERVER_ERROR;
@@ -113,6 +136,10 @@ class ServiceEndPoint {
 		self::replyAndDie(self::SERVER_ERROR, 'Unhandled API end-point');
 	}
 
+	public function isAnonymousAllowed() {
+		return self::ANONYMOUS;
+	}
+
 	// Returns reply to requester as JSON encoded data and exits php script
 	// @param code The HTTP response code
 	// @param reply The data object or error string to return to caller
@@ -122,24 +149,72 @@ class ServiceEndPoint {
 
 		if ($code === self::OK) {
 			if (isset($reply)) {
-				$reply['status'] = true; 
+				$reply['request'] = true; 
 			}
 			else {
-				$reply = array('status' => true);
+				$reply = array('request' => true);
 			}
 		}
 		else {
-			$reply = array('error' => $reply, 'status' => false);
+			$reply = array('error' => $reply, 'request' => false);
 		}
 
 		echo json_encode($reply);
 		
 		exit();
 	}
+
+	// update UNIX time stamp at last access to enable automatic session ending
+	public static function sessionTouch() {
+	/*	if (self::sessionIsValid()) {
+			$_SESSION['timestamp'] = time(); 
+		}*/
+	}
+
+	// start session and setup session variables 
+	public static function sessionStart($userId, $username, $access) {
+		$_SESSION['username'] = $username;
+		$_SESSION['userId'] = $userId;
+		$_SESSION['access'] = $access;
+		$_SESSION['timestamp'] = time(); 
+	}
+
+	// remove all session variables and destroy the session 
+	public static function sessionEnd() {
+
+		if (session_status() === PHP_SESSION_ACTIVE) {
+			session_unset(); 
+			session_destroy();
+		}
+	}
+
+	// check if session is still valid 
+	public static function sessionIsValid() {
+		if (isset($_SESSION['timestamp'])) {
+			$maxTime = (int) $_SESSION['timestamp'] + (self::SESSION_HOURS * 60 * 60);
+			if (time() < $maxTime) {
+				return true;
+			}
+		}
+		self::sessionEnd();
+		return false;
+	}
+
+	public static function getSessionUserInfo() {
+		if (self::sessionIsValid() !== true) {
+			return false;
+		}
+		if (isset($_SESSION['userId']) && isset($_SESSION['username']) && isset($_SESSION['access'])) {
+			return array('userId' => (int) $_SESSION['userId'], 'username' => $_SESSION['username'], 'access' => $_SESSION['access']);
+		}
+		self::sessionEnd();
+		return false;
+	}
 }
 
 // JSON data in body
 class SetPlan extends ServiceEndPoint {
+	const ANONYMOUS = false;
 	const DESCRIPTION = 'POST /plan/{projectId}, set new project resource plan.';
 	const API = 'plan';
 
@@ -206,6 +281,7 @@ class GetPlanSum extends ServiceEndPoint {
 }
 
 class SetQuotas extends ServiceEndPoint {
+	const ANONYMOUS = false;
 	const DESCRIPTION = 'POST /quotas, set new project quotas.';
 	const API = 'quotas';
 
@@ -348,20 +424,60 @@ class GetProject extends ServiceEndPoint {
 	}
 }
 
-class Login extends ServiceEndPoint {
+class PostLogin extends ServiceEndPoint {
 	const DESCRIPTION = 'POST /login, login to system with JSON carrying data in body as {username: "username", password: "password"}.';
 	const API = 'login';
 
 	protected function service() {
-/*		if (!isset($_POST['username']) || !isset($_POST['password'])) {
-			$this-reply = 'Not enough data in post';
+		if (!isset($_POST['username']) || !isset($_POST['password'])) {
+			$this->reply = 'Not enough data in post';
 			return self::BAD_REQUEST;
 		}
-		*/
 		$username = $_POST['username'];
 		$password = $_POST['password'];
-		list($rc, $this->reply) = $this->plupp->doLogin($username, $password);
-		return $rc === true;
+		
+		list($rc, $this->reply) = $this->plupp->verifyLogin($username, $password);
+
+		if ($rc !== true) {
+			return false;
+		}
+
+		// user was verified successfully, create a user session
+		// @TODO add permissions
+		self::sessionStart($this->reply['id'], $this->reply['username'], 'TODO');
+
+		return true;
+	}
+}
+
+class GetSession extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /session, get status of user session. If there is an active session the username is also returned in the reply.';
+	const API = 'session';
+
+	protected function service() {
+		$arr = self::getSessionUserInfo();
+
+		if ($arr !== false) {
+			$this->reply = array('session' => true, 'username' => $arr['username']);
+		}
+		else {
+			$this->reply = array('session' => false);	
+		}
+
+		// return true even though a session does not exist, the data tells wheter a session do exist
+		return true;
+	}
+}
+
+class GetLogout extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /logout, end current user session and log out user.';
+	const API = 'logout';
+
+	protected function service() {
+		// @TODO add information to database that session was ended?
+		// list($rc, $this->reply) = $this->plupp->doLogout($sessionId);
+		self::sessionEnd();
+		return true;
 	}
 }
 

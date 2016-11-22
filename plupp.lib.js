@@ -1,4 +1,7 @@
 
+//
+// Class for handlind a Plupp API request, keeps its data after request has completed
+//
 function PluppRequest(service, data) {
 	var self = this; // keep reference to this object to be used independent of call context
 	this.reply = null; // complete JSON reply returned by request on success
@@ -9,7 +12,7 @@ function PluppRequest(service, data) {
 
 	this.onSuccess = function(reply) {
 		self.reply = reply;
-		if (self.reply.status != true) {
+		if (self.reply.request != true) {
 			self.status = false;
 			console.log("Request error: " + JSON.stringify(self.reply.error));
 		}
@@ -39,10 +42,19 @@ function PluppRequest(service, data) {
 	}	
 }
 
+//
+// Plupp request object factory
+//
 Plupp = {
 	login:function(username, password) {
 		var data = { 'username': username, 'password': password };
 		return new PluppRequest("login", data);
+	},
+	logout:function() {
+		return new PluppRequest("logout");
+	},
+	getSession:function() {
+		return new PluppRequest("session");
 	},
 	getProject:function(projectId) {
 		return new PluppRequest("project/" + projectId);
@@ -295,7 +307,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 				.click(function() {
 					self.post();
 				})
-				.addClass('button button-save');
+				.addClass('button button-green');
 
 			var cancel = $('<button id="undo">Undo</button>')
 				.click(function() {
@@ -305,7 +317,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 					$('#buttons').fadeOut();
 					self.updateTable();
 				})
-				.addClass('button button-undo');
+				.addClass('button button-red');
 
 			// erase existing elements in button container and add buttons
 			$('#buttons').html(save);
