@@ -5,6 +5,11 @@ body {
 	font-size: 15px;
 }
 
+#main {
+	padding: 10px;
+	margin-top: 50px;
+}
+
 #menu {
 	margin: 0;
 	padding: 10px;
@@ -33,15 +38,22 @@ body {
 	color: #fff;
 	text-decoration: none;
 	text-shadow: 1px 1px 2px #000;
-	margin-right: 20px;
+	display: inline-block;
+	padding: 5px 10px;
+	margin-right: 10px;
+	border-radius: 5px;
 }
 
-#main {
-	padding: 10px;
-	margin-top: 50px;
+#menu a:hover {
+	background-color: #333;
+	cursor: pointer;
 }
 
-.logo {
+#menu a:active {
+	background-color: #666;
+}
+
+#menu a.logo {
 	font-weight: bold;
 	display: inline-block;
 	background-color: #008CBA;
@@ -60,10 +72,8 @@ h1 {
 	border-collapse: collapse;
 }
 
-#table-container table, 
-#table-container th, 
-#table-container td {
-	border: 1px solid grey;
+#table-container table {
+	border-top: 1px solid #aaa;
 }
 
 #table-container th, 
@@ -72,10 +82,11 @@ h1 {
 	text-align: right;
 	font-size: 1em;
 	width: 50px;
+	border-bottom: 1px solid #aaa;
 }
 
-#table-container tr:nth-child(even) {
-	background-color: #f2f2f2
+#table-container tr:nth-child(odd) {
+	background-color: #eee;
 }
 
 .cell {

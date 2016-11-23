@@ -232,7 +232,7 @@ function expand(titles, values, startPeriod, length) {
 }
 
 // convert Plupp JSON to Flot data format and fill all blanks with zeros
-function expandAndFill(titles, values, startPeriod, length) {
+function expandAndFill(config, titles, values, startPeriod, length) {
 	var zeroes = [];
 	for (var i = 0; i < length; i++) {
 		zeroes.push([startPeriod + i, 0]);
@@ -244,7 +244,7 @@ function expandAndFill(titles, values, startPeriod, length) {
 	// initalize a data serie per title with default values
 	$.each(titles, function(i, v) {
 		var data = $.extend(true, [], zeroes); // make deep copy of zeroes array (and the arrays it contains)
-		series.push({ 'label': v.name, 'data': data });
+		series.push($.extend({ 'label': v.name, 'data': data }, config));
 		lookup[v.id] = data; // store reference to data object, instead of searching for objects
 	});
 
@@ -260,7 +260,6 @@ function expandAndFill(titles, values, startPeriod, length) {
 
 PluppChart = {
 	stackedArea2: function(containerId, startPeriod, length) {
-
 		var projects = Plupp.getProjects();
 		var plans = Plupp.getPlans(startPeriod, length);
 		var quotas = Plupp.getQuotaSum(startPeriod, length);
@@ -269,36 +268,114 @@ PluppChart = {
 			plans.run(), projects.run(), quotas.run()
 		)
 		.then(function() {
-			var data = expandAndFill(projects.reply.data, plans.reply.data, startPeriod, length);
+			var config = { 
+				clickable: true,
+				hoverable: true,
+				shadowSize: 1,
+				stack: true,
+			};
+			var data = expandAndFill(config, projects.reply.data, plans.reply.data, startPeriod, length);
+
+
+			var qConfig = { 
+				clickable: true,
+				hoverable: true,
+				lines: {
+					shadowSize: 1,
+					stack: false,
+					fill: false,
+					lineWidth: 2,
+					shadowSize: 1
+				},
+				color: '#000'
+			};
+			var qData = [[11, 50], [12, 50], [13, 50], [14, 50], [15, 50], [16, 50], [17, 50]];
+			data.push($.extend({ 'label': 'Quota', 'data': qData }, qConfig));
 
 			$.plot('#' + containerId, data, {
 				series: {
-					stack: 0,
+/*					stack: 0, */
 					lines: {
 						show: true,
-						fill: true
+						fill: true,
+						lineWidth: 1,
+						shadowSize: 0
 					},
 					points: {
-						show: true
+						//show: true
 					}
+				},
+				yaxis: {
+					min: 0,
+//					max: 150
 				},
 				grid: {
 					borderWidth: 0,
-					margin: 10
+					margin: 10,
+					hoverable: true,
+					clickable: true
 				},
 				legend: {
 					show: true,
 					labelFormatter: null, // function(label, series) { return '<a href="#' + label + '">' + label + '</a>'; }
 					labelBoxBorderColor: null,
-					noColumns: 0,
+					noColumns: 2,
 					position: "ne",
 					margin: [2, 2], // number of pixels or [x margin, y margin]
-//					backgroundColor: null or color
+					backgroundColor: '#fff', // null or color
 					backgroundOpacity: 0.5, //number between 0 and 1
 //					container: $('#chart-legend'), //null or jQuery object/DOM element/jQuery expression
 //					sorted: null/false, true, "ascending", "descending", "reverse", or a comparator
 				}
 			});
+
+			$("<div id='tooltip'></div>").css({
+				position: "absolute",
+				display: "none",
+				border: "1px solid #fdd",
+				padding: "2px",
+				"background-color": "#fee",
+				opacity: 0.80
+			}).appendTo("body");
+
+
+
+			$('#' + containerId).bind("plothover", function(event, pos, item) {
+				if (item) {
+					/*
+					item: {
+						datapoint: the point, e.g. [0, 2]
+						dataIndex: the index of the point in the data array
+						series: the series object
+						seriesIndex: the index of the series
+						pageX, pageY: the global screen coordinates of the point
+					} 
+
+					showTooltip(item.pageX, item.pageY, item.series.data[item.dataIndex][3]);
+
+					*/
+					var x = item.datapoint[0].toFixed(2),
+						y = item.datapoint[1].toFixed(2);
+
+					$("#tooltip").html(item.series.label + " of " + x + " = " + y)
+						.css({top: item.pageY + 5, left: item.pageX + 5})
+						.fadeIn(200);
+				}
+				else {
+					$("#tooltip").hide();
+				}
+			});
+/*
+			$("#placeholder").bind("plotclick", function (event, pos, item) {
+				if (item) {
+					$("#clickdata").text(" - click point " + item.dataIndex + " in " + item.series.label);
+					plot.highlight(item.series, item.datapoint);
+				}
+			});
+*/
+
+
+
 		})
 		.fail(function() {
 			console.log( "something went wrong!" );

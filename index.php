@@ -54,7 +54,7 @@
 		<div id="main">
 			<div id="table-container"></div>
 			<div id="chart-container" style="height: 250px;"></div>
-			<div id="chart-legend" style="height: 250px;"></div>
+			<div id="chart-legend"></div>
 		</div>
 
 		<div id="loginForm">
