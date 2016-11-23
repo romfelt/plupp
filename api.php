@@ -1,5 +1,6 @@
 <?php
 
+// @TODO add user id to POST
 // @TODO use session_commit() to signal system that session is no longer in use, may execute other scripts in parallel, faster ride?
 
 $DEBUG = true;

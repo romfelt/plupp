@@ -6,14 +6,18 @@
 		<script src="jquery-3.1.1.min.js"></script>
 		<script src="flot/jquery.flot.js"></script>
 		<script src="flot/jquery.flot.stack.js"></script>
+		<script src="flot/jquery.flot.resize.js"></script>
 		<script src="editabletable.js"></script>
 		<script src="plupp.lib.js"></script>
+		<script src="plupp.table.lib.js"></script>
+		<script src="plupp.chart.lib.js"></script>
 		<script src="plupp.js"></script>
 		<script>
 
 			function onResize() {
 				// handle menu bar overflow
 				$('#main').css('margin-top', $('#menu').innerHeight() + 'px');
+				//$('#chart-container').innerHeight(($('body').height() - $('#menu').innerHeight()) + 'px');
 			}
 
 			$(window).resize(function() {
@@ -25,7 +29,7 @@
 				console.log("Plupp is ready!");
 				doSessionUpdate('menuSessionActive', 'menuSessionInactive');
 				//teamTable(3, 11, 24);
-				PluppChart.stackedArea2('chart-container', 11, 24);
+				PluppChartView.stackedArea2('chart-container', 11, 24);
 			});
 
 		</script>
@@ -53,8 +57,7 @@
 
 		<div id="main">
 			<div id="table-container"></div>
-			<div id="chart-container" style="height: 250px;"></div>
-			<div id="chart-legend"></div>
+			<div id="chart-container" style="height: 400px;"></div>
 		</div>
 
 		<div id="loginForm">

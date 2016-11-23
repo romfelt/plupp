@@ -209,56 +209,7 @@ function teamTable(teamId, startPeriod, length) {
 	});
 }
 
-// convert Plupp JSON to Flot data format
-function expand(titles, values, startPeriod, length) {
-	var lookup = [];
-	var series = [];
-
-	// initalize a data serie per title
-	$.each(titles, function(i, v) {
-		var data = [];
-		series.push(data); // Flot needs array in order
-		lookup[v.id] = data; // store reference to data object, instead of searching for objects
-	});
-
-	// add datapoints
-	$.each(values, function(i, v) {
-		if (typeof lookup[v.id] !== 'undefined') {
-			lookup[v.id].push([v.period - startPeriod, v.value]);
-		}
-	});
-
-	return series;
-}
-
-// convert Plupp JSON to Flot data format and fill all blanks with zeros
-function expandAndFill(config, titles, values, startPeriod, length) {
-	var zeroes = [];
-	for (var i = 0; i < length; i++) {
-		zeroes.push([startPeriod + i, 0]);
-	}
-
-	var lookup = [];
-	var series = [];
-
-	// initalize a data serie per title with default values
-	$.each(titles, function(i, v) {
-		var data = $.extend(true, [], zeroes); // make deep copy of zeroes array (and the arrays it contains)
-		series.push($.extend({ 'label': v.name, 'data': data }, config));
-		lookup[v.id] = data; // store reference to data object, instead of searching for objects
-	});
-
-	// add real values to datapoints
-	$.each(values, function(i, v) {
-		if (typeof lookup[v.id] !== 'undefined') {
-			lookup[v.id][v.period - startPeriod][1] = v.value;
-		}
-	});
-
-	return series;
-}
-
-PluppChart = {
+PluppChartView = {
 	stackedArea2: function(containerId, startPeriod, length) {
 		var projects = Plupp.getProjects();
 		var plans = Plupp.getPlans(startPeriod, length);
@@ -269,147 +220,32 @@ PluppChart = {
 		)
 		.then(function() {
 			var config = { 
+				stack: true,
 				clickable: true,
 				hoverable: true,
 				shadowSize: 1,
-				stack: true,
 			};
-			var data = expandAndFill(config, projects.reply.data, plans.reply.data, startPeriod, length);
-
 
 			var qConfig = { 
 				clickable: true,
 				hoverable: true,
 				lines: {
-					shadowSize: 1,
 					stack: false,
+					shadowSize: 1,
 					fill: false,
-					lineWidth: 2,
+					lineWidth: 3,
 					shadowSize: 1
 				},
 				color: '#000'
 			};
-			var qData = [[11, 50], [12, 50], [13, 50], [14, 50], [15, 50], [16, 50], [17, 50]];
-			data.push($.extend({ 'label': 'Quota', 'data': qData }, qConfig));
 
-			$.plot('#' + containerId, data, {
-				series: {
-/*					stack: 0, */
-					lines: {
-						show: true,
-						fill: true,
-						lineWidth: 1,
-						shadowSize: 0
-					},
-					points: {
-						//show: true
-					}
-				},
-				yaxis: {
-					min: 0,
-//					max: 150
-				},
-				grid: {
-					borderWidth: 0,
-					margin: 10,
-					hoverable: true,
-					clickable: true
-				},
-				legend: {
-					show: true,
-					labelFormatter: null, // function(label, series) { return '<a href="#' + label + '">' + label + '</a>'; }
-					labelBoxBorderColor: null,
-					noColumns: 2,
-					position: "ne",
-					margin: [2, 2], // number of pixels or [x margin, y margin]
-					backgroundColor: '#fff', // null or color
-					backgroundOpacity: 0.5, //number between 0 and 1
-//					container: $('#chart-legend'), //null or jQuery object/DOM element/jQuery expression
-//					sorted: null/false, true, "ascending", "descending", "reverse", or a comparator
-				}
-			});
-
-			$("<div id='tooltip'></div>").css({
-				position: "absolute",
-				display: "none",
-				border: "1px solid #fdd",
-				padding: "2px",
-				"background-color": "#fee",
-				opacity: 0.80
-			}).appendTo("body");
-
-
-
-			$('#' + containerId).bind("plothover", function(event, pos, item) {
-				if (item) {
-					/*
-					item: {
-						datapoint: the point, e.g. [0, 2]
-						dataIndex: the index of the point in the data array
-						series: the series object
-						seriesIndex: the index of the series
-						pageX, pageY: the global screen coordinates of the point
-					} 
-
-					showTooltip(item.pageX, item.pageY, item.series.data[item.dataIndex][3]);
-
-					*/
-					var x = item.datapoint[0].toFixed(2),
-						y = item.datapoint[1].toFixed(2);
-
-					$("#tooltip").html(item.series.label + " of " + x + " = " + y)
-						.css({top: item.pageY + 5, left: item.pageX + 5})
-						.fadeIn(200);
-				}
-				else {
-					$("#tooltip").hide();
-				}
-			});
-/*
-			$("#placeholder").bind("plotclick", function (event, pos, item) {
-				if (item) {
-					$("#clickdata").text(" - click point " + item.dataIndex + " in " + item.series.label);
-					plot.highlight(item.series, item.datapoint);
-				}
-			});
-*/
-
-
-
+			var c = new PluppChart('Projects', 'month', startPeriod, length);
+			c.addDataSection(projects.reply.data, plans.reply.data, config);
+			c.addDataRow('Quota', quotas.reply.data, qConfig);
+			c.build($('#chart-container'));
 		})
 		.fail(function() {
 			console.log( "something went wrong!" );
-		});
-
-	},
-	stackedArea: function(containerId, data) {
-		var d1 = [];
-		for (var i = 0; i <= 10; i += 1) {
-			d1.push([i, parseInt(Math.random() * 30)]);
-		}
-
-		var d2 = [];
-		for (var i = 0; i <= 10; i += 1) {
-			d2.push([i, parseInt(Math.random() * 30)]);
-		}
-
-		var d3 = [];
-		for (var i = 0; i <= 10; i += 1) {
-			d3.push([i, parseInt(Math.random() * 30)]);
-		}
-
-		$.plot('#' + containerId, [ d1, d2, d3 ], {
-			series: {
-				stack: 0,
-				lines: {
-					show: true,
-					fill: true
-				}
-			},
-			grid: {
-				borderWidth: 0,
-				margin: 10
-			}
 		});
 	}
 }
@@ -425,4 +261,3 @@ function showView(view) {
 		teamsTable(11, 24);
 	}
 }
-
