@@ -209,8 +209,102 @@ function teamTable(teamId, startPeriod, length) {
 	});
 }
 
+// convert Plupp JSON to Flot data format
+function expand(titles, values, startPeriod, length) {
+	var lookup = [];
+	var series = [];
+
+	// initalize a data serie per title
+	$.each(titles, function(i, v) {
+		var data = [];
+		series.push(data); // Flot needs array in order
+		lookup[v.id] = data; // store reference to data object, instead of searching for objects
+	});
+
+	// add datapoints
+	$.each(values, function(i, v) {
+		if (typeof lookup[v.id] !== 'undefined') {
+			lookup[v.id].push([v.period - startPeriod, v.value]);
+		}
+	});
+
+	return series;
+}
+
+// convert Plupp JSON to Flot data format and fill all blanks with zeros
+function expandAndFill(titles, values, startPeriod, length) {
+	var zeroes = [];
+	for (var i = 0; i < length; i++) {
+		zeroes.push([startPeriod + i, 0]);
+	}
+
+	var lookup = [];
+	var series = [];
+
+	// initalize a data serie per title with default values
+	$.each(titles, function(i, v) {
+		var data = $.extend(true, [], zeroes); // make deep copy of zeroes array (and the arrays it contains)
+		series.push({ 'label': v.name, 'data': data });
+		lookup[v.id] = data; // store reference to data object, instead of searching for objects
+	});
+
+	// add real values to datapoints
+	$.each(values, function(i, v) {
+		if (typeof lookup[v.id] !== 'undefined') {
+			lookup[v.id][v.period - startPeriod][1] = v.value;
+		}
+	});
+
+	return series;
+}
 
 PluppChart = {
+	stackedArea2: function(containerId, startPeriod, length) {
+
+		var projects = Plupp.getProjects();
+		var plans = Plupp.getPlans(startPeriod, length);
+		var quotas = Plupp.getQuotaSum(startPeriod, length);
+
+		$.when(
+			plans.run(), projects.run(), quotas.run()
+		)
+		.then(function() {
+			var data = expandAndFill(projects.reply.data, plans.reply.data, startPeriod, length);
+
+			$.plot('#' + containerId, data, {
+				series: {
+					stack: 0,
+					lines: {
+						show: true,
+						fill: true
+					},
+					points: {
+						show: true
+					}
+				},
+				grid: {
+					borderWidth: 0,
+					margin: 10
+				},
+				legend: {
+					show: true,
+					labelFormatter: null, // function(label, series) { return '<a href="#' + label + '">' + label + '</a>'; }
+					labelBoxBorderColor: null,
+					noColumns: 0,
+					position: "ne",
+					margin: [2, 2], // number of pixels or [x margin, y margin]
+//					backgroundColor: null or color
+					backgroundOpacity: 0.5, //number between 0 and 1
+//					container: $('#chart-legend'), //null or jQuery object/DOM element/jQuery expression
+//					sorted: null/false, true, "ascending", "descending", "reverse", or a comparator
+				}
+			});
+		})
+		.fail(function() {
+			console.log( "something went wrong!" );
+		});
+
+	},
 	stackedArea: function(containerId, data) {
 		var d1 = [];
 		for (var i = 0; i <= 10; i += 1) {

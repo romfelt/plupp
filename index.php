@@ -10,12 +10,24 @@
 		<script src="plupp.lib.js"></script>
 		<script src="plupp.js"></script>
 		<script>
+
+			function onResize() {
+				// handle menu bar overflow
+				$('#main').css('margin-top', $('#menu').innerHeight() + 'px');
+			}
+
+			$(window).resize(function() {
+				onResize();
+			});
+
 			$(document).ready(function() {
+				onResize();
 				console.log("Plupp is ready!");
 				doSessionUpdate('menuSessionActive', 'menuSessionInactive');
-//				teamTable(3, 11, 24);
-				PluppChart.stackedArea('chart-container', null);
+				//teamTable(3, 11, 24);
+				PluppChart.stackedArea2('chart-container', 11, 24);
 			});
+
 		</script>
 	</head>
 	<body>
@@ -29,7 +41,7 @@
 						<a onClick="showView('plans');">Project Plans</a>
 						<a onClick="showView('teams');">Teams</a>
 						<a onClick="showView('vacation');">Vacation</a>
-						<a onClick="showView('reports');">Reports</a>
+						<a onClick="PluppChart.stackedArea2('chart-container', 11, 24);">Reports</a>
 					</td>
 					<td id="menuSession" style="text-align: right">
 						<span id="menuSessionActive"><a onClick="doLogout();">Logout</a></span>
@@ -42,6 +54,7 @@
 		<div id="main">
 			<div id="table-container"></div>
 			<div id="chart-container" style="height: 250px;"></div>
+			<div id="chart-legend" style="height: 250px;"></div>
 		</div>
 
 		<div id="loginForm">
