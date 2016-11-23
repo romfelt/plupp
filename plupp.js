@@ -78,186 +78,201 @@ function doLogout() {
 	});
 }
 
-function quotasTable(startPeriod, length) {
-	var projects = Plupp.getProjects();
-	var quotas = Plupp.getQuotas(startPeriod, length);
-	var requested = Plupp.getPlanSum(startPeriod, length);
 
-	// $.when.apply($, my_array);
-	$.when(
-		quotas.run(), projects.run(), requested.run()
-	)
-	.then(function() {
-		var t = new PluppTable('Project Quotas', 'month', startPeriod, length, 'quotas');
-		t.addDataSection(projects.reply.data, quotas.reply.data, 'editable');
-		t.addSum();
-		t.addDataRow('Available', [], 'header');
-		t.addDelta(); // delta = available - sum
-		t.addDataRow('Requested', requested.reply.data, 'header');
-		t.addDelta(-4, -1); // delta = sum - requested
-		t.build(true, $('#table-container'), function(projectId) {
-			projectTable(projectId, startPeriod, length);
-		});
-	})
-	.fail(function() {
-		// @TODO 
-		console.log( "something went wrong!" );
-	});
-}
+//
+// Class for handling Plupp Views at UI application
+//
+function PluppView(startPeriod, length) {
+	var self = this; // keep reference to this object to be used independent of call context
+	this.startPeriod = startPeriod;
+	this.length = length;
+	this.tableContainerId = 'table-container';
+	this.chartContainerId = 'chart-container';
+	this.title = 'Define Title Here';
+	this._mode = 'table'; // possible modes are 'table' or 'chart'
 
-function plansTable(startPeriod, length) {
-	var projects = Plupp.getProjects();
-	var plans = Plupp.getPlans(startPeriod, length);
-	var quotas = Plupp.getQuotaSum(startPeriod, length);
-
-	$.when(
-		plans.run(), projects.run(), quotas.run()
-	)
-	.then(function() {
-		var t = new PluppTable('Project Resource Plans', 'month', startPeriod, length);
-		t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
-		t.addSum();
-		t.addDataRow('Quotas', quotas.reply.data, 'header');
-		t.addDelta(); // delta = quota - sum
-		t.build(false, $('#table-container'), function(projectId) {
-			projectTable(projectId, startPeriod, length);
-		});
-	})
-	.fail(function() {
-		// @TODO 
-		console.log( "something went wrong!" );
-	});
-}
-
-function projectTable(projectId, startPeriod, length) {
-	var teams = Plupp.getTeams();
-	var plan = Plupp.getPlan(projectId, startPeriod, length);
-	var quota = Plupp.getQuota(projectId, startPeriod, length);
-	var project = Plupp.getProject(projectId);
-
-	$.when(
-		teams.run(), quota.run(), plan.run(), project.run()
-	)
-	.then(function() {
-		var title = 'Project Resource Plan: ';
-		if (typeof(project.reply.data) != 'undefined') {
-			title += project.reply.data[0].name;
+	this.mode = function(mode) {
+		if (typeof(mode) == 'undefined') {
+			return self._mode;
 		}
-		var t = new PluppTable(title, 'month', startPeriod, length, 'plan', projectId);
-		t.addDataSection(teams.reply.data, plan.reply.data, 'editable');
-		t.addSum();
-		t.addDataRow('Quota', quota.reply.data, 'header');
-		t.addDelta(); // delta = quota - sum
-		t.build(true, $('#table-container'), function(teamId) {
-			teamTable(teamId, startPeriod, length);
-		});
-	})
-	.fail(function() {
-		// @TODO 
-		console.log( "something went wrong!" );
-	});
-}
+		self._mode = mode;
+	}
 
-function teamsTable(startPeriod, length) {
-	var teams = Plupp.getTeams();
-	var plans = Plupp.getTeamsPlan(startPeriod, length);
+	this.onError = function() {
+		console.log("something went wrong!");
+	}
 
-	$.when(
-		plans.run(), teams.run()
-	)
-	.then(function() {
-		var t = new PluppTable('Teams Resource Requests', 'month', startPeriod, length);
-		t.addDataSection(teams.reply.data, plans.reply.data, 'constant');
-		t.addSum();
-		t.addDataRow('Available', [], 'header');
-		t.addDelta(); // delta = available - sum
-		t.build(false, $('#table-container'), function(teamId) {
-			teamTable(teamId, startPeriod, length);
-		});
-	})
-	.fail(function() {
-		// @TODO 
-		console.log( "something went wrong!" );
-	});
-}
-
-function teamTable(teamId, startPeriod, length) {
-	var team = Plupp.getTeam(teamId);
-	var teamPlans = Plupp.getTeamPlans(teamId, startPeriod, length);
-	var projects = Plupp.getProjects();
-
-	$.when(
-		team.run(), teamPlans.run(), projects.run()
-	)
-	.then(function() {
-		var title = 'Team Resource Requests: ';
-		if (typeof(team.reply.data) != 'undefined') {
-			title += team.reply.data[0].name;
-		}
-		var t = new PluppTable(title, 'month', startPeriod, length);
-		t.addDataSection(projects.reply.data, teamPlans.reply.data, 'constant');
-		t.addSum();
-		t.addDataRow('Available', [], 'header');
-		t.addDelta(); // delta = available - sum
-		t.build(false, $('#table-container'), function(projectId) {
-			projectTable(projectId, startPeriod, length);
-		});
-	})
-	.fail(function() {
-		// @TODO 
-		console.log( "something went wrong!" );
-	});
-}
-
-PluppChartView = {
-	stackedArea2: function(containerId, startPeriod, length) {
+	this.quotas = function() {
 		var projects = Plupp.getProjects();
-		var plans = Plupp.getPlans(startPeriod, length);
-		var quotas = Plupp.getQuotaSum(startPeriod, length);
+		var quotas = Plupp.getQuotas(self.startPeriod, self.length);
+		var requested = Plupp.getPlanSum(self.startPeriod, self.length);
+
+		$.when(
+			quotas.run(), projects.run(), requested.run()
+		)
+		.then(function() {
+			if (self.mode() == 'table') {
+				var t = new PluppTable('Project Quotas', 'month', self.startPeriod, self.length, 'quotas');
+				t.addDataSection(projects.reply.data, quotas.reply.data, 'editable');
+				t.addSum();
+				t.addDataRow('Available', [], 'header');
+				t.addDelta(); // delta = available - sum
+				t.addDataRow('Requested', requested.reply.data, 'header');
+				t.addDelta(-4, -1); // delta = sum - requested
+				t.build(true, $('#' + self.tableContainerId), function(projectId) {
+					self.project(projectId);
+				});
+			}
+			else {
+				self._chartStackedArea(projects, quotas, requested, 'Requested');
+			}
+		})
+		.fail(self.onError);
+	}
+
+	this.plans = function() {
+		self.title = 'Project Resource Plans';
+		var projects = Plupp.getProjects();
+		var plans = Plupp.getPlans(self.startPeriod, self.length);
+		var quotas = Plupp.getQuotaSum(self.startPeriod, self.length);
 
 		$.when(
 			plans.run(), projects.run(), quotas.run()
 		)
 		.then(function() {
-			var config = { 
-				stack: true,
-				clickable: true,
-				hoverable: true,
-				shadowSize: 1,
-			};
-
-			var qConfig = { 
-				clickable: true,
-				hoverable: true,
-				lines: {
-					stack: false,
-					shadowSize: 1,
-					fill: false,
-					lineWidth: 3,
-					shadowSize: 1
-				},
-				color: '#000'
-			};
-
-			var c = new PluppChart('Projects', 'month', startPeriod, length);
-			c.addDataSection(projects.reply.data, plans.reply.data, config);
-			c.addDataRow('Quota', quotas.reply.data, qConfig);
-			c.build($('#chart-container'));
+			if (self.mode() == 'table') {
+				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
+				t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
+				t.addSum();
+				t.addDataRow('Quotas', quotas.reply.data, 'header');
+				t.addDelta(); // delta = quota - sum
+				t.build(false, $('#' + self.tableContainerId), function(projectId) {
+					self.project(projectId);
+				});
+			}
+			else {
+				self._chartStackedArea(projects, plans, quotas, 'Quota');
+			}
 		})
-		.fail(function() {
-			console.log( "something went wrong!" );
-		});
+		.fail(self.onError);
 	}
-}
 
-function showView(view) {
-	if (view == 'quotas') {
-		quotasTable(11, 24);
+	this.teams = function() {
+		self.title = 'Team Resource Requests';
+		var teams = Plupp.getTeams();
+		var plans = Plupp.getTeamsPlan(self.startPeriod, self.length);
+		// @TODO add available
+
+		$.when(
+			plans.run(), teams.run()
+		)
+		.then(function() {
+			if (self.mode() == 'table') {
+				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
+				t.addDataSection(teams.reply.data, plans.reply.data, 'constant');
+				t.addSum();
+				t.addDataRow('Available', [], 'header');
+				t.addDelta(); // delta = available - sum
+				t.build(false, $('#' + self.tableContainerId), function(teamId) {
+					self.team(teamId);
+				});
+			}
+			else {
+				self._chartStackedArea(teams, plans);
+			}
+		})
+		.fail(self.onError);
 	}
-	else if (view == 'plans') {
-		plansTable(11, 24);
+
+	this.project = function(projectId) {
+		self.title = 'Project Resource Plan: ';
+		var teams = Plupp.getTeams();
+		var plan = Plupp.getPlan(projectId, startPeriod, length);
+		var quota = Plupp.getQuota(projectId, startPeriod, length);
+		var project = Plupp.getProject(projectId);
+
+		$.when(
+			teams.run(), quota.run(), plan.run(), project.run()
+		)
+		.then(function() {
+			if (typeof(project.reply.data) != 'undefined') {
+				self.title += project.reply.data[0].name;
+			}
+			if (self.mode() == 'table') {
+				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'plan', projectId);
+				t.addDataSection(teams.reply.data, plan.reply.data, 'editable');
+				t.addSum();
+				t.addDataRow('Quota', quota.reply.data, 'header');
+				t.addDelta(); // delta = quota - sum
+				t.build(true, $('#' + self.tableContainerId), function(teamId) {
+					self.team(teamId);
+				});
+			}
+			else {
+				self._chartStackedArea(teams, plan, quota, 'Quota');
+			}
+		})
+		.fail(self.onError);
 	}
-	else if (view == 'teams') {
-		teamsTable(11, 24);
+
+	this.team = function(teamId) {
+		self.title = 'Team Resource Requests: ';
+		var team = Plupp.getTeam(teamId);
+		var plans = Plupp.getTeamPlans(teamId, self.startPeriod, self.length);
+		var projects = Plupp.getProjects();
+		// @TODO add available
+
+		$.when(
+			team.run(), plans.run(), projects.run()
+		)
+		.then(function() {
+			if (self.mode() == 'table') {
+				if (typeof(team.reply.data) != 'undefined') {
+					self.title += team.reply.data[0].name;
+				}
+				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
+				t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
+				t.addSum();
+				t.addDataRow('Available', [], 'header');
+				t.addDelta(); // delta = available - sum
+				t.build(false, $('#' + self.tableContainerId), function(projectId) {
+					self.project(projectId);
+				});
+			}
+			else {
+				self._chartStackedArea(projects, plans);
+			}
+		})
+		.fail(self.onError);
 	}
+
+	this._chartStackedArea = function(titles, values, limit, limitTitle) {
+		var config = { 
+			stack: true,
+			clickable: true,
+			hoverable: true,
+			shadowSize: 1,
+		};
+
+		var limitConfig = { 
+			clickable: true,
+			hoverable: true,
+			lines: {
+				stack: false,
+				shadowSize: 1,
+				fill: false,
+				lineWidth: 3,
+				shadowSize: 1
+			},
+			color: '#000'
+		};
+
+		var c = new PluppChart(self.chartTitle, 'month', self.startPeriod, self.length);
+		c.addDataSection(titles.reply.data, values.reply.data, config);
+		if (typeof(limit) !== 'undefined') {
+			c.addDataRow(limitTitle, limit.reply.data, limitConfig);
+		}
+		c.build($('#' + self.chartContainerId));
+	}
+
 }

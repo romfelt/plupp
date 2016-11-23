@@ -54,7 +54,12 @@ function PluppChart(title, periodType, startPeriod, length) {
 		self.series.push(series);
 	}
 
-	this.build = function(container) {
+	// returns what the label should say
+	this.labelFormatter = function(label, series) { 
+		return '<a onClick="alert(\'' + label +'\');">' + label + '</a>'; 
+	}
+
+	this.build = function(container, height) {
 		var chart = $('<div id="' + self.id + '"/>');
 
 		// erase existing elements in container and add table
@@ -85,7 +90,7 @@ function PluppChart(title, periodType, startPeriod, length) {
 			},
 			legend: {
 				show: true,
-				labelFormatter: null, // function(label, series) { return '<a href="#' + label + '">' + label + '</a>'; }
+				labelFormatter: self.labelFormatter,
 				labelBoxBorderColor: null,
 				noColumns: 2,
 				position: 'ne',

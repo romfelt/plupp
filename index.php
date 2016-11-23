@@ -1,6 +1,6 @@
 <html>
 	<head>
-		<title>Plupp 0.5</title>
+		<title>PLUPP 0.5</title>
 		<meta charset="utf-8">
 		<link rel="stylesheet" type="text/css" href="plupp.css" />
 		<script src="jquery-3.1.1.min.js"></script>
@@ -13,6 +13,7 @@
 		<script src="plupp.chart.lib.js"></script>
 		<script src="plupp.js"></script>
 		<script>
+			var view = new PluppView(11, 24);
 
 			function onResize() {
 				// handle menu bar overflow
@@ -28,8 +29,8 @@
 				onResize();
 				console.log("Plupp is ready!");
 				doSessionUpdate('menuSessionActive', 'menuSessionInactive');
-				//teamTable(3, 11, 24);
-				PluppChartView.stackedArea2('chart-container', 11, 24);
+				view.mode('chart');
+				view.plans();
 			});
 
 		</script>
@@ -40,12 +41,12 @@
 				<tr>
 					<td>
 						<a class="logo" href="">PLUPP</a>
-						<a onClick="showView('allocation');">Allocation</a>
-						<a onClick="showView('quotas');">Quotas</a>
-						<a onClick="showView('plans');">Project Plans</a>
-						<a onClick="showView('teams');">Teams</a>
-						<a onClick="showView('vacation');">Vacation</a>
-						<a onClick="PluppChart.stackedArea2('chart-container', 11, 24);">Reports</a>
+						<a onClick="">Allocation</a>
+						<a onClick="view.quotas();">Quotas</a>
+						<a onClick="view.plans();">Project Plans</a>
+						<a onClick="view.teams();">Teams</a>
+						<a onClick="">Vacation</a>
+						<a onClick="">Reports</a>
 					</td>
 					<td id="menuSession" style="text-align: right">
 						<span id="menuSessionActive"><a onClick="doLogout();">Logout</a></span>
