@@ -205,24 +205,26 @@ class Plupp {
 		$server = 'ldap://zone2.flir.net';
 		$ldaprdn = 'zone2' . "\\" . $username;
 		$rc = false;
-		$error = '';
+		$result = '';
 
 		if ($ldap = @ldap_connect($server)) {
 			ldap_set_option($ldap, LDAP_OPT_PROTOCOL_VERSION, 3);
 			ldap_set_option($ldap, LDAP_OPT_REFERRALS, 0);
 			if (@ldap_bind($ldap, $ldaprdn, $password)) {
 				$rc = true;
+				// @TODO get ID from DB
+				$result = array('id' => 0, 'username'=> $username);
 			}
 			else {
-				$error = 'Failed to bind to LDAP server';
+				$result = 'Failed to bind to LDAP server';
 			}
 			ldap_close($ldap);
 		}
 		else {
-			$error = 'Unable to connect to LDAP server';
+			$result = 'Unable to connect to LDAP server';
 		}
 
-		return array($rc, $error);
+		return array($rc, $result);
 	}
 
 	private function _loginByDB($username, $password) {
@@ -245,7 +247,7 @@ class Plupp {
 	public function verifyLogin($username, $password) {
 		list($rc, $result) = $this->_loginByDB($username, $password);
 		if ($rc !== true) {
-		//	list($rc, $result) = $this->_loginByLDAP($username, $password);
+			list($rc, $result) = $this->_loginByLDAP($username, $password);
 		}
 
 		//addSession($user, $status);

@@ -2,6 +2,7 @@
 	<head>
 		<title>PLUPP 0.5</title>
 		<meta charset="utf-8">
+		<link rel="shortcut icon" href="/plupp/plupp.png" />
 		<link rel="stylesheet" type="text/css" href="plupp.css" />
 		<script src="jquery-3.1.1.min.js"></script>
 		<script src="flot/jquery.flot.js"></script>
@@ -21,6 +22,23 @@
 				//$('#chart-container').innerHeight(($('body').height() - $('#menu').innerHeight()) + 'px');
 			}
 
+			function toogleTableChart() {
+				$('#table-container').hide();
+				$('#chart-container').hide();
+				if (view.mode() == 'chart') {
+					view.mode('table');
+					$('#viewMode').text('Change to Chart view');
+					$('#table-container').show();
+				}
+				else {
+					view.mode('chart');
+					$('#viewMode').text('Change to Table view');
+					$('#chart-container').show();
+				}
+				// @TODO make switch to same view
+				view.plans();
+			}
+
 			$(window).resize(function() {
 				onResize();
 			});
@@ -28,8 +46,8 @@
 			$(document).ready(function() {
 				onResize();
 				console.log("Plupp is ready!");
+				toogleTableChart();
 				doSessionUpdate('menuSessionActive', 'menuSessionInactive');
-				view.mode('chart');
 				view.plans();
 			});
 
@@ -46,7 +64,7 @@
 						<a onClick="view.plans();">Project Plans</a>
 						<a onClick="view.teams();">Teams</a>
 						<a onClick="">Vacation</a>
-						<a onClick="">Reports</a>
+						<a id="viewMode" onClick="toogleTableChart();">llll</a>
 					</td>
 					<td id="menuSession" style="text-align: right">
 						<span id="menuSessionActive"><a onClick="doLogout();">Logout</a></span>

@@ -1,7 +1,8 @@
 //
 // Class for building dynamic and interactive charts
 //
-function PluppChart(title, periodType, startPeriod, length) {
+// @TODO remove args, reuse from parent reference
+function PluppChart(parent, title, periodType, startPeriod, length) {
 	var self = this; // keep reference to this object to be used independent of call context
 	this.title = title;
 	this.id = 'pluppChart';
@@ -9,6 +10,8 @@ function PluppChart(title, periodType, startPeriod, length) {
 	this.length = length;
 	this.series = []; // flot data series
 	this.zeroes = null;
+	this.callback = null; // callback when a label is clicked
+	this.parent = parent;
 
 	// returns array of length with pre-defined values
 	this.getPointArray = function(startValue, increment) {
@@ -23,13 +26,13 @@ function PluppChart(title, periodType, startPeriod, length) {
 	self.zeroes = self.getPointArray(0, 0);
 
 	// convert Plupp JSON to Flot data format and fill all blanks with zeros
-	this.addDataSection = function(titles, values, config) {
+	this.addDataSection = function(titles, values, callback, config) {
 		var lookup = [];
 
 		// initalize a data serie per title with default values
 		$.each(titles, function(i, v) {
 			var data = $.extend(true, [], self.zeroes); // make deep copy of zeroes array (and the arrays it contains)
-			self.series.push($.extend({ 'label': v.name, 'data': data }, config));
+			self.series.push($.extend({ 'label': {'name': v.name, 'id': v.id, 'callback': callback}, 'data': data }, config));
 			lookup[v.id] = data; // store reference to data object, instead of searching for objects
 		});
 
@@ -42,9 +45,9 @@ function PluppChart(title, periodType, startPeriod, length) {
 	}
 
 	// convert Plupp JSON to Flot data format and fill all blanks with zeros
-	this.addDataRow = function(title, values, config) {
+	this.addDataRow = function(title, values, callback, config) {
 		var data = $.extend(true, [], self.zeroes); // make deep copy of zeroes array (and the arrays it contains)
-		var series = $.extend({ 'label': title, 'data': data }, config);
+		var series = $.extend({ 'label': {'name': title, 'id': 0, 'callback': callback}, 'data': data }, config);
 
 		// add real values to datapoints
 		$.each(values, function(i, v) {
@@ -56,17 +59,23 @@ function PluppChart(title, periodType, startPeriod, length) {
 
 	// returns what the label should say
 	this.labelFormatter = function(label, series) { 
-		return '<a onClick="alert(\'' + label +'\');">' + label + '</a>'; 
+		if (label.callback == 'project') {
+			return '<a onClick="view.project(' + label.id + ');">' + label.name + '</a>';
+		}
+		else if (label.callback == 'team') {
+			return '<a onClick="view.team(' + label.id + ');">' + label.name + '</a>';
+		}
+		return label.name;
 	}
 
 	this.build = function(container, height) {
-		var chart = $('<div id="' + self.id + '"/>');
+		var chart = $('<div id="' + self.id + '"/>').height(height);
 
 		// erase existing elements in container and add table
-//		container.html('<h1>' + self.tableTitle + '</h1>');
-//		container.append(chart);
+		container.html('<h1>' + self.title + '</h1>');
+		container.append(chart);
 
-		$.plot(container, self.series, {
+		$.plot(chart, self.series, {
 			series: {
 				lines: {
 					show: true,

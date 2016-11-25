@@ -119,12 +119,10 @@ function PluppView(startPeriod, length) {
 				t.addDelta(); // delta = available - sum
 				t.addDataRow('Requested', requested.reply.data, 'header');
 				t.addDelta(-4, -1); // delta = sum - requested
-				t.build(true, $('#' + self.tableContainerId), function(projectId) {
-					self.project(projectId);
-				});
+				t.build(true, $('#' + self.tableContainerId), self.project);
 			}
 			else {
-				self._chartStackedArea(projects, quotas, requested, 'Requested');
+				self._chartStackedArea('project', projects, quotas, requested, 'Requested');
 			}
 		})
 		.fail(self.onError);
@@ -146,12 +144,10 @@ function PluppView(startPeriod, length) {
 				t.addSum();
 				t.addDataRow('Quotas', quotas.reply.data, 'header');
 				t.addDelta(); // delta = quota - sum
-				t.build(false, $('#' + self.tableContainerId), function(projectId) {
-					self.project(projectId);
-				});
+				t.build(false, $('#' + self.tableContainerId), self.project);
 			}
 			else {
-				self._chartStackedArea(projects, plans, quotas, 'Quota');
+				self._chartStackedArea('project', projects, plans, quotas, 'Quota');
 			}
 		})
 		.fail(self.onError);
@@ -173,12 +169,10 @@ function PluppView(startPeriod, length) {
 				t.addSum();
 				t.addDataRow('Available', [], 'header');
 				t.addDelta(); // delta = available - sum
-				t.build(false, $('#' + self.tableContainerId), function(teamId) {
-					self.team(teamId);
-				});
+				t.build(false, $('#' + self.tableContainerId), self.team);
 			}
 			else {
-				self._chartStackedArea(teams, plans);
+				self._chartStackedArea('team', teams, plans);
 			}
 		})
 		.fail(self.onError);
@@ -198,18 +192,17 @@ function PluppView(startPeriod, length) {
 			if (typeof(project.reply.data) != 'undefined') {
 				self.title += project.reply.data[0].name;
 			}
+			
 			if (self.mode() == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'plan', projectId);
 				t.addDataSection(teams.reply.data, plan.reply.data, 'editable');
 				t.addSum();
 				t.addDataRow('Quota', quota.reply.data, 'header');
 				t.addDelta(); // delta = quota - sum
-				t.build(true, $('#' + self.tableContainerId), function(teamId) {
-					self.team(teamId);
-				});
+				t.build(true, $('#' + self.tableContainerId), self.team);
 			}
 			else {
-				self._chartStackedArea(teams, plan, quota, 'Quota');
+				self._chartStackedArea('team', teams, plan, quota, 'Quota');
 			}
 		})
 		.fail(self.onError);
@@ -226,27 +219,26 @@ function PluppView(startPeriod, length) {
 			team.run(), plans.run(), projects.run()
 		)
 		.then(function() {
+			if (typeof(team.reply.data) != 'undefined') {
+				self.title += team.reply.data[0].name;
+			}
+
 			if (self.mode() == 'table') {
-				if (typeof(team.reply.data) != 'undefined') {
-					self.title += team.reply.data[0].name;
-				}
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
 				t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
 				t.addSum();
 				t.addDataRow('Available', [], 'header');
 				t.addDelta(); // delta = available - sum
-				t.build(false, $('#' + self.tableContainerId), function(projectId) {
-					self.project(projectId);
-				});
+				t.build(false, $('#' + self.tableContainerId), self.project);
 			}
 			else {
-				self._chartStackedArea(projects, plans);
+				self._chartStackedArea('project', projects, plans);
 			}
 		})
 		.fail(self.onError);
 	}
 
-	this._chartStackedArea = function(titles, values, limit, limitTitle) {
+	this._chartStackedArea = function(callback, titles, values, limit, limitTitle) {
 		var config = { 
 			stack: true,
 			clickable: true,
@@ -267,12 +259,12 @@ function PluppView(startPeriod, length) {
 			color: '#000'
 		};
 
-		var c = new PluppChart(self.chartTitle, 'month', self.startPeriod, self.length);
-		c.addDataSection(titles.reply.data, values.reply.data, config);
+		var c = new PluppChart(self, self.title, 'month', self.startPeriod, self.length);
+		c.addDataSection(titles.reply.data, values.reply.data, callback, config);
 		if (typeof(limit) !== 'undefined') {
-			c.addDataRow(limitTitle, limit.reply.data, limitConfig);
+			c.addDataRow(limitTitle, limit.reply.data, callback, limitConfig);
 		}
-		c.build($('#' + self.chartContainerId));
+		c.build($('#' + self.chartContainerId), 400);
 	}
 
 }
