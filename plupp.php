@@ -200,7 +200,8 @@ class Plupp {
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_PROJECT . " WHERE id = $projectId");
 	}
 
-	private function _loginByLDAP($username, $password) {
+	// verify username/password combination using ldap
+	private function _verifyByLDAP($username, $password) {
 		// @TODO make LDAP settings configurable
 		$server = 'ldap://zone2.flir.net';
 		$ldaprdn = 'zone2' . "\\" . $username;
@@ -212,11 +213,9 @@ class Plupp {
 			ldap_set_option($ldap, LDAP_OPT_REFERRALS, 0);
 			if (@ldap_bind($ldap, $ldaprdn, $password)) {
 				$rc = true;
-				// @TODO get ID from DB
-				$result = array('id' => 0, 'username'=> $username);
 			}
 			else {
-				$result = 'Failed to bind to LDAP server';
+				$result = 'LDAP server returned invalid username and password combination';
 			}
 			ldap_close($ldap);
 		}
@@ -227,9 +226,9 @@ class Plupp {
 		return array($rc, $result);
 	}
 
-	private function _loginByDB($username, $password) {
-		$passhash = md5($password);
-		$sql = "SELECT username, id FROM " . self::TABLE_USER . " WHERE local = '1' AND BINARY username = '$username' AND password = '$passhash' LIMIT 1";
+	// get user from database based on username
+	private function _getUser($username) {
+		$sql = "SELECT id, password, source FROM " . self::TABLE_USER . " WHERE BINARY username = '$username' LIMIT 1";
 
 		list($rc, $result) = $this->_doQuery($sql);
 
@@ -239,15 +238,36 @@ class Plupp {
 					return array(true, $row);
 				}
 			}
-			return array(false, 'username and password combination not found');
+			return array(false, 'Username not found');
 		}
 		return array(false, $result);
 	}
 
+	//  verifying login is done in two steps:
+	// 	  1. check if user is available in user database
+	//    2. verify password with source (ldap or local database)
 	public function verifyLogin($username, $password) {
-		list($rc, $result) = $this->_loginByDB($username, $password);
-		if ($rc !== true) {
-			list($rc, $result) = $this->_loginByLDAP($username, $password);
+		list($rc, $result) = $this->_getUser($username);
+		if ($rc === true) {
+			if ($result['source'] === 'database') {
+				$passhash = md5($password);
+				if ($passhash !== $result['password']) { // use password stored in this local database
+					$rc = false;
+					$result = 'Invalid username and password combination';
+				}
+				// else simply return result from getUser() call
+			}
+			else if ($result['source'] === 'ldap') {
+				list($rc, $error) = $this->_verifyByLDAP($username, $password);
+				if ($rc !== true) {
+					$result = $error;
+				}
+				// else simply return result from getUser() call
+			}
+			else {
+				$rc = false;
+				$result = 'Unable to verify login with unknown source';
+			}
 		}
 
 		//addSession($user, $status);

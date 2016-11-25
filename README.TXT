@@ -1,5 +1,12 @@
-PLUPP - The multi-project multi-team planning and visualization tool
---------------------------------------------------------------------
+PLUPP
+=====
+
+The multi-project multi-team resource planning and visualization tool. Written 
+in php and javascript using jquery and flot chart libraries.
+
+
+LICENSE
+-------
 
 Copyright (c) 2016, jonas (at) romfelt (dot) se 
 All rights reserved.
@@ -29,20 +36,39 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
+INSTALL
+-------
+
 Host requirements
------------------
+
 * Written in php and relies on php-ldap library (php5-ldap on Ubuntu) for LDAP 
-  user verification
-* Uses MySQL database as backend (should be straightforward to add new backend)
-* Not required but a nice tool for administration: phpmyadmin
+user account verification.
+
+* Have support for MySQL database as backend but should be straightforward to 
+add new SQL backend.
+
+* phpmyadmin is not required but a nice tool for administration of MySQL server
 
 Installation
-------------
+
 1. Run: "sudo apt-get install mysqld php5-ldap phpmyadmin" to install 
-   dependencies
+dependencies. (Tested on Apache2 web server.)
+
 2. Install files under your www-root, typically in a folder named "plupp"
-3. Create a separate database and it is suggested to create a database user with
-   insert- and select-
-   capabilities only.
-4. Edit plupp-config.php
-5. Run the php script called plupp-install.php
+
+3. Create a separate database and it is suggested to create a database user 
+with insert- and select-capabilities only.
+
+4. Edit config.php to set database user settings and PLUPP application
+settings.
+
+5. Run the php script called plupp-install.php to setup database tables.
+
+
+DEVELOPER INFORMATION
+---------------------
+
+TBD
+
+

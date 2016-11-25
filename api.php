@@ -399,7 +399,7 @@ class PostLogin extends ServiceEndPoint {
 
 		// user was verified successfully, create a user session
 		// @TODO add permissions
-		$this->session->start($this->reply['id'], $this->reply['username'], 'TODO');
+		$this->session->start($this->reply['id'], $username, 'TODO');
 
 		return true;
 	}
