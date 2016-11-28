@@ -15,6 +15,9 @@ class Plupp {
 	const TABLE_PROJECT = 'project';
 	const TABLE_USER = 'user';
 	const TABLE_SESSION = 'session';
+	const TABLE_RESOURCE = 'resource';
+	const TABLE_RESOURCE_DATA = 'resource_data';
+	const TABLE_AVAILABILITY = 'availability';
 
 	// @TODO return error message
 	public function __construct($host, $user, $password, $database) {
@@ -164,6 +167,10 @@ class Plupp {
 		return $this->_getQuery($sql);
 	}
 
+	public function addTeam() {
+		// @TODO add me
+	}
+
 	public function getTeam($teamId) {
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " WHERE id = '$teamId'");
 	}
@@ -192,6 +199,22 @@ class Plupp {
 		return $this->_getQuery($sql);
 	}
 
+	public function getTeamsAvailability($startPeriod, $length) {
+		$endPeriod = $startPeriod + $length;
+		$sql = ""; // @TODO add me
+		return $this->_getQuery($sql);
+	}
+
+	public function getTeamAvailability($teamId, $startPeriod, $length) {
+		$endPeriod = $startPeriod + $length;
+		$sql = ""; // @TODO add me
+		return $this->_getQuery($sql);
+	}
+
+	public function addProject() {
+		// @TODO add me
+	}
+
 	public function getProjects() {
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_PROJECT . " ORDER BY name ASC");
 	}
@@ -199,6 +222,29 @@ class Plupp {
 	public function getProject($projectId) {
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_PROJECT . " WHERE id = $projectId");
 	}
+
+	public function addResource($name, $teamId, $departmentId, $type) {
+		// @TODO add me
+	}
+
+	public function getResources() {
+		$sql = "SELECT p.id AS id, p.name AS name, r.departmentId AS departmentId, r.teamId AS teamId, r.type AS type FROM " . self::TABLE_RESOURCE . " p INNER JOIN (" .
+			   "    SELECT *, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " GROUP BY resourceId" .
+			   ") r ON p.resourceId = r.resourceId " .
+			   "ORDER BY p.resourceId ASC";
+
+		return $this->_getQuery($sql);
+	}
+
+	public function getResource($resourceId) {
+		$sql = "SELECT p.id AS id, p.name AS name, r.departmentId AS departmentId, r.teamId AS teamId, r.type AS type FROM " . self::TABLE_RESOURCE . " p INNER JOIN (" .
+			   "    SELECT *, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " WHERE resourceId = $resourceId GROUP BY resourceId" .
+			   ") r ON p.id = r.resourceId " .
+			   "WHERE r.id = $resourceId ORDER BY p.resourceId ASC";
+			   
+		return $this->_getQuery($sql);
+	}
+
 
 	// verify username/password combination using ldap
 	private function _verifyByLDAP($username, $password) {
