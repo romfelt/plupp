@@ -200,15 +200,55 @@ class Plupp {
 		return $this->_getQuery($sql);
 	}
 
-	public function getTeamsAvailability($startPeriod, $length) {
+	private function _createResourceTable($name, $startPeriod, $length) {
 		$endPeriod = $startPeriod + $length;
-		$sql = ""; // @TODO add me
-		return $this->_getQuery($sql);
+		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name AS ( " .
+			   "    SELECT a.resourceId AS resourceId, a.teamId AS teamId FROM " . self::TABLE_RESOURCE_DATA . " a INNER JOIN ( " .
+			   "        SELECT resourceId, teamId, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " GROUP BY resourceId " .
+			   "    ) b ON a.resourceId = b.resourceId AND a.timestamp = b.latest " .
+			   ")";
+
+		return $this->_setQuery($sql);
 	}
 
-	public function getTeamAvailability($teamId, $startPeriod, $length) {
+	private function _createAvailabilityTable($name, $startPeriod, $length) {
 		$endPeriod = $startPeriod + $length;
-		$sql = ""; // @TODO add me
+		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name AS ( " .
+			   "    SELECT a.resourceId AS resourceId, a.period AS period, a.value AS value FROM " . self::TABLE_AVAILABILITY . " a INNER JOIN ( " .
+			   "        SELECT resourceId, value, period, MAX(timestamp) AS latest FROM " . self::TABLE_AVAILABILITY . " GROUP BY resourceId, period " .
+			   "    ) b ON a.resourceId = b.resourceId AND a.period = b.period AND a.timestamp = b.latest " .
+			   ")";
+
+		return $this->_setQuery($sql);
+	}
+
+	public function getTeamAvailability($startPeriod, $length, $teamId = null) {
+		$resource = 'resourceLatest';
+		$arr = $this->_createResourceTable($resource, $startPeriod, $length);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
+
+		$availability = 'availabilityLatest';
+		$arr = $this->_createAvailabilityTable($availability, $startPeriod, $length);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
+
+		$endPeriod = $startPeriod + $length;
+		$sql = '';
+		if ($teamId === null) {
+			$sql = "SELECT r.teamId AS id, a.period AS period, SUM(a.value) AS value FROM $availability a " .
+				   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+				   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+				   "GROUP BY r.teamId, a.period ORDER BY r.teamId ASC, a.period ASC";
+		}
+		else {
+			$sql = "SELECT r.teamId AS id, a.period AS period, SUM(a.value) AS value FROM $availability a " .
+				   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+				   "WHERE r.teamId = $teamId AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+				   "GROUP BY r.teamId, a.period ORDER BY r.teamId ASC, a.period ASC";
+		}
 		return $this->_getQuery($sql);
 	}
 
@@ -253,7 +293,6 @@ class Plupp {
 
 		return $this->_getQuery($sql);
 	}
-
 
 	// verify username/password combination using ldap
 	private function _verifyByLDAP($username, $password) {

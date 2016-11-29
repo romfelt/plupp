@@ -30,6 +30,7 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetTeams::DESCRIPTION . '<br>';
 	echo GetTeamPlans::DESCRIPTION . '<br>';
 	echo GetTeamsPlan::DESCRIPTION . '<br>';
+	echo GetTeamAvailability::DESCRIPTION . '<br>';
 	echo GetResource::DESCRIPTION . '<br>';
 	echo GetResources::DESCRIPTION . '<br>';
 	echo PostLogin::DESCRIPTION . '<br>';
@@ -63,6 +64,7 @@ else if ($method == 'GET') {
 		case GetTeams::API: $obj = new GetTeams($request); break;
 		case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
 		case GetTeamsPlan::API: $obj = new GetTeamsPlan($request); break;
+		case GetTeamAvailability::API: $obj = new GetTeamAvailability($request); break;
 		case GetProject::API: $obj = new GetProject($request); break;
 		case GetProjects::API: $obj = new GetProjects($request); break;
 		case GetResource::API: $obj = new GetResource($request); break;
@@ -95,14 +97,21 @@ class ServiceEndPoint {
 	protected $plupp;
 	protected $request;
 	protected $requiredArgs;
+	protected $availableArgs;
 	protected $reply;
 	protected $session;
+	protected $startTime;
 
 	// @param request The path at which script was called, see self::getRequest().
 	// @param requiredArgs number of required args excluding end point name
 	public function __construct($request, $requiredArgs = 0) {
+		/* @TODO add API timer 
+		$this->startTime = microtime(true);
+		$time = microtime(true) - $this->startTime;
+		*/
 		$this->request = $request;
 		$this->requiredArgs = $requiredArgs;
+		$this->availableArgs = count($this->request) - 1;
 		$this->session = Session::getInstance();
 	}
 
@@ -125,7 +134,7 @@ class ServiceEndPoint {
 
 	// Initialize end point. Check if number of required args is availble.
 	protected function init() {
-		if ($this->request == null || (count($this->request) - 1) < $this->requiredArgs) {
+		if ($this->request == null || $this->availableArgs < $this->requiredArgs) {
 			self::replyAndDie(self::BAD_REQUEST, 'Not enough arguments in request');
 		}
 
@@ -353,6 +362,23 @@ class GetTeamPlans extends ServiceEndPoint {
 		$startPeriod = $this->request[2];
 		$length = $this->request[3];
 		list($rc, $this->reply) = $this->plupp->getTeamPlans($teamId, $startPeriod, $length);
+		return $rc === true;
+	}
+}
+
+class GetTeamAvailability extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /teamavailability/{startPeriod}/{length}/{teamId}, get aggregated resource availability for a specific team within a given time intervall, i.e. how much of a team is available in total. ´teamId´ is optional, leaving this blank will return all teams.';
+	const API = 'teamavailability';
+
+	public function __construct($request) {
+		parent::__construct($request, 2);
+	}
+
+	protected function service() {
+		$startPeriod = $this->request[1];
+		$length = $this->request[2];
+		$teamId = $this->availableArgs > $this->requiredArgs ? $this->request[3] : null;
+		list($rc, $this->reply) = $this->plupp->getTeamAvailability($startPeriod, $length, $teamId);
 		return $rc === true;
 	}
 }
