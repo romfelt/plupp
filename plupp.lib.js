@@ -60,13 +60,13 @@ Plupp = {
 		return new PluppRequest("project/" + projectId);
 	},
 	getProjects:function() {
-		return new PluppRequest("projects");
+		return new PluppRequest("project");
 	},
 	getTeam:function(teamId) {
 		return new PluppRequest("team/" + teamId);
 	},
 	getTeams:function() {
-		return new PluppRequest("teams");
+		return new PluppRequest("team");
 	},
 	getTeamsPlan:function(startPeriod, length) {
 		return new PluppRequest("teamsplan/" + "/" + startPeriod + "/" + length);
@@ -90,10 +90,10 @@ Plupp = {
 		return new PluppRequest("quotas", data);
 	},
 	getQuota:function(projectId, startPeriod, length) {
-		return new PluppRequest("quota/" + projectId + "/" + startPeriod + "/" + length);
+		return new PluppRequest("quota/" + startPeriod + "/" + length + "/" + projectId);
 	},
 	getQuotas:function(startPeriod, length) {
-		return new PluppRequest("quotas/" + startPeriod + "/" + length);
+		return new PluppRequest("quota/" + startPeriod + "/" + length);
 	},
 	getQuotaSum:function(startPeriod, length) {
 		return new PluppRequest("quotasum/" + startPeriod + "/" + length);

@@ -22,17 +22,13 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetPlanSum::DESCRIPTION . '<br>';
 	echo SetQuotas::DESCRIPTION . '<br>';
 	echo GetQuota::DESCRIPTION . '<br>';
-	echo GetQuotas::DESCRIPTION . '<br>';
 	echo GetQuotaSum::DESCRIPTION . '<br>';
 	echo GetProject::DESCRIPTION . '<br>';
-	echo GetProjects::DESCRIPTION . '<br>';
 	echo GetTeam::DESCRIPTION . '<br>';
-	echo GetTeams::DESCRIPTION . '<br>';
 	echo GetTeamPlans::DESCRIPTION . '<br>';
 	echo GetTeamsPlan::DESCRIPTION . '<br>';
 	echo GetTeamAvailability::DESCRIPTION . '<br>';
 	echo GetResource::DESCRIPTION . '<br>';
-	echo GetResources::DESCRIPTION . '<br>';
 	echo PostLogin::DESCRIPTION . '<br>';
 	echo GetSession::DESCRIPTION . '<br>';
 	echo GetLogout::DESCRIPTION . '<br>';
@@ -61,16 +57,12 @@ else if ($method == 'GET') {
 		case GetPlans::API: $obj = new GetPlans($request); break;
 		case GetPlanSum::API: $obj = new GetPlanSum($request); break;
 		case GetTeam::API: $obj = new GetTeam($request); break;
-		case GetTeams::API: $obj = new GetTeams($request); break;
 		case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
 		case GetTeamsPlan::API: $obj = new GetTeamsPlan($request); break;
 		case GetTeamAvailability::API: $obj = new GetTeamAvailability($request); break;
 		case GetProject::API: $obj = new GetProject($request); break;
-		case GetProjects::API: $obj = new GetProjects($request); break;
 		case GetResource::API: $obj = new GetResource($request); break;
-		case GetResources::API: $obj = new GetResources($request); break;
 		case GetQuota::API: $obj = new GetQuota($request); break;
-		case GetQuotas::API: $obj = new GetQuotas($request); break;
 		case GetQuotaSum::API: $obj = new GetQuotaSum($request); break;
 		case GetSession::API: $obj = new GetSession($request); break;
 		case GetLogout::API: $obj = new GetLogout($request); break;
@@ -260,25 +252,8 @@ class SetQuotas extends ServiceEndPoint {
 }
 
 class GetQuota extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /quota/{projectId}/{startPeriod}/{length}, get project resource quotas for a specific project within a given time intervall.';
+	const DESCRIPTION = 'GET /quota/{startPeriod}/{length}/{projectId}, get project resource quotas for a specific project within a given time intervall. {projectId} is optional, leaving this blank will return all projects.';
 	const API = 'quota';
-
-	public function __construct($request) {
-		parent::__construct($request, 3);
-	}
-
-	protected function service() {
-		$projectId = $this->request[1];
-		$startPeriod = $this->request[2];
-		$length = $this->request[3];
-		list($rc, $this->reply) = $this->plupp->getQuota($projectId, $startPeriod, $length);
-		return $rc === true;
-	}
-}
-
-class GetQuotas extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /quotas/{startPeriod}/{length}, get project resource quotas for all projects within a given time intervall.';
-	const API = 'quotas';
 
 	public function __construct($request) {
 		parent::__construct($request, 2);
@@ -287,7 +262,8 @@ class GetQuotas extends ServiceEndPoint {
 	protected function service() {
 		$startPeriod = $this->request[1];
 		$length = $this->request[2];
-		list($rc, $this->reply) = $this->plupp->getQuotas($startPeriod, $length);
+		$projectId = $this->availableArgs > $this->requiredArgs ? $this->request[3] : null;
+		list($rc, $this->reply) = $this->plupp->getQuota($startPeriod, $length, $projectId);
 		return $rc === true;
 	}
 }
@@ -309,26 +285,12 @@ class GetQuotaSum extends ServiceEndPoint {
 }
 
 class GetTeam extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /team/{teamId}, get team information for a specific team.';
+	const DESCRIPTION = 'GET /team/{teamId}, get team information for a specific team. {teamId} is optional, leaving this blank will return all teams.';
 	const API = 'team';
 
-	public function __construct($request) {
-		parent::__construct($request, 1);
-	}
-
 	protected function service() {
-		$teamId = $this->request[1];
+		$teamId = $this->availableArgs > $this->requiredArgs ? $this->request[1] : null;
 		list($rc, $this->reply) = $this->plupp->getTeam($teamId);
-		return $rc === true;
-	}
-}
-
-class GetTeams extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /teams, get list of teams and team information.';
-	const API = 'teams';
-
-	protected function service() {
-		list($rc, $this->reply) = $this->plupp->getTeams();
 		return $rc === true;
 	}
 }
@@ -383,51 +345,23 @@ class GetTeamAvailability extends ServiceEndPoint {
 	}
 }
 
-class GetProjects extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /projects, get list of projects and project information.';
-	const API = 'projects';
-
-	protected function service() {
-		list($rc, $this->reply) = $this->plupp->getProjects();
-		return $rc === true;
-	}
-}
-
 class GetProject extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /project/{projectId}, get project information for a specific project.';
+	const DESCRIPTION = 'GET /project/{projectId}, get project information for a specific project. ´projectId´ is optional, leaving this blank will return all projects.';
 	const API = 'project';
 
-	public function __construct($request) {
-		parent::__construct($request, 1);
-	}
-
 	protected function service() {
-		$projectId = $this->request[1];
+		$projectId = $this->availableArgs > $this->requiredArgs ? $this->request[1] : null;
 		list($rc, $this->reply) = $this->plupp->getProject($projectId);
 		return $rc === true;
 	}
 }
 
-class GetResources extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /resources, get list of resources and resource information; a resource being a human being doing great things.';
-	const API = 'resources';
-
-	protected function service() {
-		list($rc, $this->reply) = $this->plupp->getResources();
-		return $rc === true;
-	}
-}
-
 class GetResource extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /resource/{resourceId}, get resource information for a specific resource; a resource being a human being doing great things.';
+	const DESCRIPTION = 'GET /resource/{resourceId}, get resource information for a specific resource; a resource being a human being doing great things. {resourceId} is optional, leaving this blank will return all resources.';
 	const API = 'resource';
 
-	public function __construct($request) {
-		parent::__construct($request, 1);
-	}
-
 	protected function service() {
-		$resourceId = $this->request[1];
+		$resourceId = $this->availableArgs > $this->requiredArgs ? $this->request[1] : null;
 		list($rc, $this->reply) = $this->plupp->getResource($resourceId);
 		return $rc === true;
 	}

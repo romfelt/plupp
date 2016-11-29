@@ -138,23 +138,22 @@ class Plupp {
 		return $this->_setQuery($sql);
 	}
 
-	public function getQuota($projectId, $startPeriod, $length) {
+	public function getQuota($startPeriod, $length, $projectId = null) {
+		$sql = '';
 		$endPeriod = $startPeriod + $length;
-		$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
-			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " WHERE projectId = '$projectId' GROUP BY projectId, period" .
-			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-			   "WHERE p.projectId = '$projectId' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.period ASC";
-
-		return $this->_getQuery($sql);
-	}
-
-	public function getQuotas($startPeriod, $length) {
-		$endPeriod = $startPeriod + $length;
-		$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
-			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
-			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-			   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
-
+		if ($projectId === null){
+			$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
+				   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
+				   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
+				   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";		
+		}
+		else {
+			$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
+				   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . 
+				   "    WHERE projectId = '$projectId' GROUP BY projectId, period" .
+				   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
+				   "WHERE p.projectId = '$projectId' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.period ASC";
+		}
 		return $this->_getQuery($sql);
 	}
 
@@ -172,12 +171,11 @@ class Plupp {
 		// @TODO add me
 	}
 
-	public function getTeam($teamId) {
+	public function getTeam($teamId = null) {
+		if ($teamId === null) {
+			return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " ORDER BY name ASC");
+		}
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " WHERE id = '$teamId'");
-	}
-
-	public function getTeams() {
-		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " ORDER BY name ASC");
 	}
 
 	public function getTeamsPlan($startPeriod, $length) {
@@ -200,10 +198,9 @@ class Plupp {
 		return $this->_getQuery($sql);
 	}
 
-	private function _createResourceTable($name, $startPeriod, $length) {
-		$endPeriod = $startPeriod + $length;
+	private function _createResourceTable($name) {
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name AS ( " .
-			   "    SELECT a.resourceId AS resourceId, a.teamId AS teamId FROM " . self::TABLE_RESOURCE_DATA . " a INNER JOIN ( " .
+			   "    SELECT a.resourceId AS resourceId, a.teamId AS teamId, a.type AS type, a.departmentId AS departmentId FROM " . self::TABLE_RESOURCE_DATA . " a INNER JOIN ( " .
 			   "        SELECT resourceId, teamId, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " GROUP BY resourceId " .
 			   "    ) b ON a.resourceId = b.resourceId AND a.timestamp = b.latest " .
 			   ")";
@@ -217,6 +214,7 @@ class Plupp {
 			   "    SELECT a.resourceId AS resourceId, a.period AS period, a.value AS value FROM " . self::TABLE_AVAILABILITY . " a INNER JOIN ( " .
 			   "        SELECT resourceId, value, period, MAX(timestamp) AS latest FROM " . self::TABLE_AVAILABILITY . " GROUP BY resourceId, period " .
 			   "    ) b ON a.resourceId = b.resourceId AND a.period = b.period AND a.timestamp = b.latest " .
+			   "    WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 			   ")";
 
 		return $this->_setQuery($sql);
@@ -224,7 +222,7 @@ class Plupp {
 
 	public function getTeamAvailability($startPeriod, $length, $teamId = null) {
 		$resource = 'resourceLatest';
-		$arr = $this->_createResourceTable($resource, $startPeriod, $length);
+		$arr = $this->_createResourceTable($resource);
 		if ($arr[0] !== true) {
 			return $arr;
 		}
@@ -256,11 +254,10 @@ class Plupp {
 		// @TODO add me
 	}
 
-	public function getProjects() {
-		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_PROJECT . " ORDER BY name ASC");
-	}
-
-	public function getProject($projectId) {
+	public function getProject($projectId = null) {
+		if ($projectId === null) {
+			return $this->_getQuery("SELECT id, name FROM " . self::TABLE_PROJECT . " ORDER BY name ASC");
+		}
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_PROJECT . " WHERE id = $projectId");
 	}
 
@@ -268,28 +265,24 @@ class Plupp {
 		// @TODO add me
 	}
 
-	public function getResources() {
-		$sql = "SELECT r.id AS id, r.name AS name, rd1.type AS type, d.id AS departmentId, d.name AS departmentName, t.id AS teamId, t.name AS teamName " .
-			   "FROM " . self::TABLE_RESOURCE_DATA . " rd1 INNER JOIN ( " .
-			   "    SELECT *, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " GROUP BY resourceId " .
-			   ") rd2 ON rd1.resourceId = rd2.resourceId AND rd1.timestamp = rd2.latest " .
-			   "LEFT JOIN " . self::TABLE_RESOURCE . " r ON rd1.resourceId = r.id " .
-			   "LEFT JOIN " . self::TABLE_TEAM . " t ON rd1.teamId = t.id " .
-			   "LEFT JOIN " . self::TABLE_DEPARTMENT . " d ON rd1.departmentId = d.id " .
-			   "ORDER BY r.id ASC";
+	public function getResource($resourceId = null) {
+		$resource = 'resourceLatest';
+		$arr = $this->_createResourceTable($resource);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
 
-		return $this->_getQuery($sql);
-	}
+		$sql = "SELECT r.id AS id, r.name AS name, rd.type AS type, d.id AS departmentId, d.name AS departmentName, t.id AS teamId, t.name AS teamName " .
+			   "FROM $resource rd " .
+			   "LEFT JOIN " . self::TABLE_RESOURCE . " r ON rd.resourceId = r.id " .
+			   "LEFT JOIN " . self::TABLE_TEAM . " t ON rd.teamId = t.id " .
+			   "LEFT JOIN " . self::TABLE_DEPARTMENT . " d ON rd.departmentId = d.id ";
 
-	public function getResource($resourceId) {
-		$sql = "SELECT r.id AS id, r.name AS name, rd1.type AS type, d.id AS departmentId, d.name AS departmentName, t.id AS teamId, t.name AS teamName " .
-			   "FROM " . self::TABLE_RESOURCE_DATA . " rd1 INNER JOIN ( " .
-			   "    SELECT *, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " WHERE resourceId = $resourceId GROUP BY resourceId " .
-			   ") rd2 ON rd1.resourceId = rd2.resourceId AND rd1.timestamp = rd2.latest " .
-			   "LEFT JOIN " . self::TABLE_RESOURCE . " r ON rd1.resourceId = r.id " .
-			   "LEFT JOIN " . self::TABLE_TEAM . " t ON rd1.teamId = t.id " .
-			   "LEFT JOIN " . self::TABLE_DEPARTMENT . " d ON rd1.departmentId = d.id " .
-			   "WHERE r.id = $resourceId ORDER BY r.id ASC";
+		if ($resourceId != null) {
+			$sql .= "WHERE r.id = $resourceId ";
+		}
+
+		$sql .= "ORDER BY r.id ASC";
 
 		return $this->_getQuery($sql);
 	}
