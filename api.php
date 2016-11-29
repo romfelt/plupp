@@ -30,6 +30,8 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetTeams::DESCRIPTION . '<br>';
 	echo GetTeamPlans::DESCRIPTION . '<br>';
 	echo GetTeamsPlan::DESCRIPTION . '<br>';
+	echo GetResource::DESCRIPTION . '<br>';
+	echo GetResources::DESCRIPTION . '<br>';
 	echo PostLogin::DESCRIPTION . '<br>';
 	echo GetSession::DESCRIPTION . '<br>';
 	echo GetLogout::DESCRIPTION . '<br>';
@@ -63,6 +65,8 @@ else if ($method == 'GET') {
 		case GetTeamsPlan::API: $obj = new GetTeamsPlan($request); break;
 		case GetProject::API: $obj = new GetProject($request); break;
 		case GetProjects::API: $obj = new GetProjects($request); break;
+		case GetResource::API: $obj = new GetResource($request); break;
+		case GetResources::API: $obj = new GetResources($request); break;
 		case GetQuota::API: $obj = new GetQuota($request); break;
 		case GetQuotas::API: $obj = new GetQuotas($request); break;
 		case GetQuotaSum::API: $obj = new GetQuotaSum($request); break;
@@ -374,6 +378,31 @@ class GetProject extends ServiceEndPoint {
 	protected function service() {
 		$projectId = $this->request[1];
 		list($rc, $this->reply) = $this->plupp->getProject($projectId);
+		return $rc === true;
+	}
+}
+
+class GetResources extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /resources, get list of resources and resource information; a resource being a human being doing great things.';
+	const API = 'resources';
+
+	protected function service() {
+		list($rc, $this->reply) = $this->plupp->getResources();
+		return $rc === true;
+	}
+}
+
+class GetResource extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /resource/{resourceId}, get resource information for a specific resource; a resource being a human being doing great things.';
+	const API = 'resource';
+
+	public function __construct($request) {
+		parent::__construct($request, 1);
+	}
+
+	protected function service() {
+		$resourceId = $this->request[1];
+		list($rc, $this->reply) = $this->plupp->getResource($resourceId);
 		return $rc === true;
 	}
 }

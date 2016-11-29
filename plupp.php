@@ -18,6 +18,7 @@ class Plupp {
 	const TABLE_RESOURCE = 'resource';
 	const TABLE_RESOURCE_DATA = 'resource_data';
 	const TABLE_AVAILABILITY = 'availability';
+	const TABLE_DEPARTMENT = 'department';
 
 	// @TODO return error message
 	public function __construct($host, $user, $password, $database) {
@@ -228,20 +229,28 @@ class Plupp {
 	}
 
 	public function getResources() {
-		$sql = "SELECT p.id AS id, p.name AS name, r.departmentId AS departmentId, r.teamId AS teamId, r.type AS type FROM " . self::TABLE_RESOURCE . " p INNER JOIN (" .
-			   "    SELECT *, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " GROUP BY resourceId" .
-			   ") r ON p.resourceId = r.resourceId " .
-			   "ORDER BY p.resourceId ASC";
+		$sql = "SELECT r.id AS id, r.name AS name, rd1.type AS type, d.id AS departmentId, d.name AS departmentName, t.id AS teamId, t.name AS teamName " .
+			   "FROM " . self::TABLE_RESOURCE_DATA . " rd1 INNER JOIN ( " .
+			   "    SELECT *, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " GROUP BY resourceId " .
+			   ") rd2 ON rd1.resourceId = rd2.resourceId AND rd1.timestamp = rd2.latest " .
+			   "LEFT JOIN " . self::TABLE_RESOURCE . " r ON rd1.resourceId = r.id " .
+			   "LEFT JOIN " . self::TABLE_TEAM . " t ON rd1.teamId = t.id " .
+			   "LEFT JOIN " . self::TABLE_DEPARTMENT . " d ON rd1.departmentId = d.id " .
+			   "ORDER BY r.id ASC";
 
 		return $this->_getQuery($sql);
 	}
 
 	public function getResource($resourceId) {
-		$sql = "SELECT p.id AS id, p.name AS name, r.departmentId AS departmentId, r.teamId AS teamId, r.type AS type FROM " . self::TABLE_RESOURCE . " p INNER JOIN (" .
-			   "    SELECT *, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " WHERE resourceId = $resourceId GROUP BY resourceId" .
-			   ") r ON p.id = r.resourceId " .
-			   "WHERE r.id = $resourceId ORDER BY p.resourceId ASC";
-			   
+		$sql = "SELECT r.id AS id, r.name AS name, rd1.type AS type, d.id AS departmentId, d.name AS departmentName, t.id AS teamId, t.name AS teamName " .
+			   "FROM " . self::TABLE_RESOURCE_DATA . " rd1 INNER JOIN ( " .
+			   "    SELECT *, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " WHERE resourceId = $resourceId GROUP BY resourceId " .
+			   ") rd2 ON rd1.resourceId = rd2.resourceId AND rd1.timestamp = rd2.latest " .
+			   "LEFT JOIN " . self::TABLE_RESOURCE . " r ON rd1.resourceId = r.id " .
+			   "LEFT JOIN " . self::TABLE_TEAM . " t ON rd1.teamId = t.id " .
+			   "LEFT JOIN " . self::TABLE_DEPARTMENT . " d ON rd1.departmentId = d.id " .
+			   "WHERE r.id = $resourceId ORDER BY r.id ASC";
+
 		return $this->_getQuery($sql);
 	}
 
