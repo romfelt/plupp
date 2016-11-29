@@ -95,23 +95,21 @@ class Plupp {
 		return $this->_setQuery($sql);
 	}
 
-	public function getPlan($projectId, $startPeriod, $length) {
+	public function getPlan($startPeriod, $length, $projectId = null) {
+		$sql = '';
 		$endPeriod = $startPeriod + $length;
-		$sql = "SELECT p.teamId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
-			   "    SELECT teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE projectId = '$projectId' GROUP BY teamId, period" .
-			   ") r ON p.timestamp = r.latest AND p.teamId = r.teamId AND p.period = r.period " .
-			   "WHERE p.projectId = '$projectId' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.period ASC";
-
-		return $this->_getQuery($sql);
-	}
-
-	public function getPlans($startPeriod, $length) {
-		$endPeriod = $startPeriod + $length;
-		$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
-			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
-			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
-			   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
-
+		if ($projectId === null) {
+			$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
+				   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
+				   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
+				   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
+		}
+		else {
+			$sql = "SELECT p.teamId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
+				   "    SELECT teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE projectId = '$projectId' GROUP BY teamId, period" .
+				   ") r ON p.timestamp = r.latest AND p.teamId = r.teamId AND p.period = r.period " .
+				   "WHERE p.projectId = '$projectId' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.period ASC";
+		}
 		return $this->_getQuery($sql);
 	}
 
@@ -125,7 +123,7 @@ class Plupp {
 		return $this->_getQuery($sql);
 	}
 
-	public function setQuotas($data, $projectIdKey, $periodKey, $valueKey) {
+	public function setQuota($data, $projectIdKey, $periodKey, $valueKey) {
 		$sql = "INSERT INTO " . self::TABLE_QUOTA . " (projectId, period, value) VALUES";
 		$i = 0;
 		foreach ($data as $k => $v) {
@@ -354,6 +352,10 @@ class Plupp {
 			else {
 				$rc = false;
 				$result = 'Unable to verify login with unknown source';
+			}
+			
+			if (isset($result['password'])) {
+				unset($result['password']);
 			}
 		}
 

@@ -78,16 +78,16 @@ Plupp = {
 		return new PluppRequest("plan/" + projectId, data);
 	},
 	getPlan:function(projectId, startPeriod, length) {
-		return new PluppRequest("plan/" + projectId + "/" + startPeriod + "/" + length);
+		return new PluppRequest("plan/" + startPeriod + "/" + length + "/" + projectId);
 	},
 	getPlans:function(startPeriod, length) {
-		return new PluppRequest("plans/" + startPeriod + "/" + length);
+		return new PluppRequest("plan/" + startPeriod + "/" + length);
 	},
 	getPlanSum:function(startPeriod, length) {
 		return new PluppRequest("plansum/" + startPeriod + "/" + length);
 	},
 	setQuotas:function(data) {
-		return new PluppRequest("quotas", data);
+		return new PluppRequest("quota", data);
 	},
 	getQuota:function(projectId, startPeriod, length) {
 		return new PluppRequest("quota/" + startPeriod + "/" + length + "/" + projectId);

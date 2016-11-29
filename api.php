@@ -18,9 +18,8 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo "<h1>PLUPP API description</h1>";
 	echo SetPlan::DESCRIPTION . '<br>';
 	echo GetPlan::DESCRIPTION . '<br>';
-	echo GetPlans::DESCRIPTION . '<br>';
 	echo GetPlanSum::DESCRIPTION . '<br>';
-	echo SetQuotas::DESCRIPTION . '<br>';
+	echo SetQuota::DESCRIPTION . '<br>';
 	echo GetQuota::DESCRIPTION . '<br>';
 	echo GetQuotaSum::DESCRIPTION . '<br>';
 	echo GetProject::DESCRIPTION . '<br>';
@@ -47,14 +46,13 @@ $obj = null;
 if ($method == 'POST') {
 	switch ($cmd) {
 		case SetPlan::API: $obj = new SetPlan($request); break;
-		case SetQuotas::API: $obj = new SetQuotas($request); break;
+		case SetQuota::API: $obj = new SetQuota($request); break;
 		case PostLogin::API: $obj = new PostLogin($request); break;
 	}
 }
 else if ($method == 'GET') {
 	switch ($cmd) {
 		case GetPlan::API: $obj = new GetPlan($request); break;
-		case GetPlans::API: $obj = new GetPlans($request); break;
 		case GetPlanSum::API: $obj = new GetPlanSum($request); break;
 		case GetTeam::API: $obj = new GetTeam($request); break;
 		case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
@@ -169,6 +167,23 @@ class ServiceEndPoint {
 	}
 }
 
+// Service end-point with 2 required arguments and 1 optional: /{startPeriod}/{length}/{id}
+class ServiceEndPointIntervalId extends ServiceEndPoint {
+	protected $startPeriod;
+	protected $length;
+	protected $optionalId;
+
+	public function __construct($request) {
+		parent::__construct($request, 2);
+	}
+
+	protected function initArgs() {
+		$this->startPeriod = $this->request[1];
+		$this->length = $this->request[2];
+		$this->optionalId = $this->availableArgs > $this->requiredArgs ? $this->request[3] : null;
+	}
+}
+
 // JSON data in body
 class SetPlan extends ServiceEndPoint {
 	const DESCRIPTION = 'POST /plan/{projectId}, set new project resource plan.';
@@ -188,36 +203,14 @@ class SetPlan extends ServiceEndPoint {
 	}
 }
 
-class GetPlan extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /plan/{projectId}/{startPeriod}/{length}, get detailed project resource plan with team break-down within a given time intervall.';
+class GetPlan extends ServiceEndPointIntervalId {
+	const DESCRIPTION = 'GET /plan/{startPeriod}/{length}/{projectId}, get detailed project resource plan with team break-down within a given time intervall. {projectId} is optional and if left out resource plans for all projects within a given time intervall, i.e. how much total resources each project requests are returned.';
 	const API = 'plan';
 
-	public function __construct($request) {
-		parent::__construct($request, 3);
-	}
-
 	protected function service() {
-		$projectId = $this->request[1];
-		$startPeriod = $this->request[2];
-		$length = $this->request[3];
-		list($rc, $this->reply) = $this->plupp->getPlan($projectId, $startPeriod, $length);
-		$this->reply['projectId'] = $projectId;
-		return $rc === true;
-	}
-}
-
-class GetPlans extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /plans/{startPeriod}/{length}, get resource plans for all projects within a given time intervall, i.e. how much total resources each project requests.';
-	const API = 'plans';
-
-	public function __construct($request) {
-		parent::__construct($request, 2);
-	}
-
-	protected function service() {
-		$startPeriod = $this->request[1];
-		$length = $this->request[2];
-		list($rc, $this->reply) = $this->plupp->getPlans($startPeriod, $length);
+		$this->initArgs();
+		list($rc, $this->reply) = $this->plupp->getPlan($this->startPeriod, $this->length, $this->optionalId);
+		$this->reply['projectId'] = $this->optionalId;
 		return $rc === true;
 	}
 }
@@ -238,32 +231,26 @@ class GetPlanSum extends ServiceEndPoint {
 	}
 }
 
-class SetQuotas extends ServiceEndPoint {
-	const DESCRIPTION = 'POST /quotas, set new project quotas.';
-	const API = 'quotas';
+class SetQuota extends ServiceEndPoint {
+	const DESCRIPTION = 'POST /quota, set new project quota.';
+	const API = 'quota';
 
 	protected $anonymous = false;
 
 	protected function service() {
 		$data = $_POST['data'];
-		list($rc, $this->reply) = $this->plupp->setQuotas($data, 'id', 'period', 'value');
+		list($rc, $this->reply) = $this->plupp->setQuota($data, 'id', 'period', 'value');
 		return $rc === true;
 	}
 }
 
-class GetQuota extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /quota/{startPeriod}/{length}/{projectId}, get project resource quotas for a specific project within a given time intervall. {projectId} is optional, leaving this blank will return all projects.';
+class GetQuota extends ServiceEndPointIntervalId {
+	const DESCRIPTION = 'GET /quota/{startPeriod}/{length}/{projectId}, get project resource quotas for a specific project within a given time intervall. {projectId} is optional, leaving this blank will return quota for all projects.';
 	const API = 'quota';
 
-	public function __construct($request) {
-		parent::__construct($request, 2);
-	}
-
 	protected function service() {
-		$startPeriod = $this->request[1];
-		$length = $this->request[2];
-		$projectId = $this->availableArgs > $this->requiredArgs ? $this->request[3] : null;
-		list($rc, $this->reply) = $this->plupp->getQuota($startPeriod, $length, $projectId);
+		$this->initArgs();
+		list($rc, $this->reply) = $this->plupp->getQuota($this->startPeriod, $this->length, $this->optionalId);
 		return $rc === true;
 	}
 }
@@ -328,19 +315,13 @@ class GetTeamPlans extends ServiceEndPoint {
 	}
 }
 
-class GetTeamAvailability extends ServiceEndPoint {
+class GetTeamAvailability extends ServiceEndPointIntervalId {
 	const DESCRIPTION = 'GET /teamavailability/{startPeriod}/{length}/{teamId}, get aggregated resource availability for a specific team within a given time intervall, i.e. how much of a team is available in total. ´teamId´ is optional, leaving this blank will return all teams.';
 	const API = 'teamavailability';
 
-	public function __construct($request) {
-		parent::__construct($request, 2);
-	}
-
 	protected function service() {
-		$startPeriod = $this->request[1];
-		$length = $this->request[2];
-		$teamId = $this->availableArgs > $this->requiredArgs ? $this->request[3] : null;
-		list($rc, $this->reply) = $this->plupp->getTeamAvailability($startPeriod, $length, $teamId);
+		$this->initArgs();
+		list($rc, $this->reply) = $this->plupp->getTeamAvailability($this->startPeriod, $this->length, $this->optionalId);
 		return $rc === true;
 	}
 }
