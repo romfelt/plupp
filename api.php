@@ -26,7 +26,8 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetTeam::DESCRIPTION . '<br>';
 	echo GetTeamPlans::DESCRIPTION . '<br>';
 	echo GetTeamsPlan::DESCRIPTION . '<br>';
-	echo GetTeamAvailability::DESCRIPTION . '<br>';
+	echo GetAvailability::DESCRIPTION . '<br>';
+	echo GetAvailabilitySum::DESCRIPTION . '<br>';
 	echo GetResource::DESCRIPTION . '<br>';
 	echo PostLogin::DESCRIPTION . '<br>';
 	echo GetSession::DESCRIPTION . '<br>';
@@ -57,7 +58,8 @@ else if ($method == 'GET') {
 		case GetTeam::API: $obj = new GetTeam($request); break;
 		case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
 		case GetTeamsPlan::API: $obj = new GetTeamsPlan($request); break;
-		case GetTeamAvailability::API: $obj = new GetTeamAvailability($request); break;
+		case GetAvailability::API: $obj = new GetAvailability($request); break;
+		case GetAvailabilitySum::API: $obj = new GetAvailabilitySum($request); break;
 		case GetProject::API: $obj = new GetProject($request); break;
 		case GetResource::API: $obj = new GetResource($request); break;
 		case GetQuota::API: $obj = new GetQuota($request); break;
@@ -95,10 +97,7 @@ class ServiceEndPoint {
 	// @param request The path at which script was called, see self::getRequest().
 	// @param requiredArgs number of required args excluding end point name
 	public function __construct($request, $requiredArgs = 0) {
-		/* @TODO add API timer 
 		$this->startTime = microtime(true);
-		$time = microtime(true) - $this->startTime;
-		*/
 		$this->request = $request;
 		$this->requiredArgs = $requiredArgs;
 		$this->availableArgs = count($this->request) - 1;
@@ -118,8 +117,9 @@ class ServiceEndPoint {
 		$this->init(); // will exit on fail
 		$this->session->touch(); // keep session alive when a valid request has been received
 		$rc = $this->service(); // run the service
+		$time = microtime(true) - $this->startTime;
 		$code = $rc === true ? self::OK : self::SERVER_ERROR;
-		self::replyAndDie($code, $this->reply); // send reply and HTTP status code
+		self::replyAndDie($code, $this->reply, $time); // send reply and HTTP status code
 	}
 
 	// Initialize end point. Check if number of required args is availble.
@@ -145,7 +145,8 @@ class ServiceEndPoint {
 	// Returns reply to requester as JSON encoded data and exits php script
 	// @param code The HTTP response code
 	// @param reply The data object or error string to return to caller
-	public static function replyAndDie($code, $reply) {
+	// @param time The time it took to service the request
+	public static function replyAndDie($code, $reply, $time = null) {
 		http_response_code($code);
 		header('Content-type: application/json');
 
@@ -161,8 +162,11 @@ class ServiceEndPoint {
 			$reply = array('error' => $reply, 'request' => false);
 		}
 
+		if ($time !== null) {
+			$reply['time'] = round($time, 6); 
+		}
+
 		echo json_encode($reply);
-		
 		exit();
 	}
 }
@@ -315,13 +319,24 @@ class GetTeamPlans extends ServiceEndPoint {
 	}
 }
 
-class GetTeamAvailability extends ServiceEndPointIntervalId {
-	const DESCRIPTION = 'GET /teamavailability/{startPeriod}/{length}/{teamId}, get aggregated resource availability for a specific team within a given time intervall, i.e. how much of a team is available in total. ´teamId´ is optional, leaving this blank will return all teams.';
-	const API = 'teamavailability';
+class GetAvailability extends ServiceEndPointIntervalId {
+	const DESCRIPTION = 'GET /availability/{startPeriod}/{length}/{teamId}, get aggregated resource availability for a specific team within a given time intervall, i.e. how much of a team is available in total. ´teamId´ is optional, leaving this blank will return all teams.';
+	const API = 'availability';
 
 	protected function service() {
 		$this->initArgs();
-		list($rc, $this->reply) = $this->plupp->getTeamAvailability($this->startPeriod, $this->length, $this->optionalId);
+		list($rc, $this->reply) = $this->plupp->getAvailability($this->startPeriod, $this->length, $this->optionalId);
+		return $rc === true;
+	}
+}
+
+class GetAvailabilitySum extends ServiceEndPointIntervalId {
+	const DESCRIPTION = 'GET /availabilitysum/{startPeriod}/{length}, get total number of resources available within a given time intervall.';
+	const API = 'availabilitysum';
+
+	protected function service() {
+		$this->initArgs();
+		list($rc, $this->reply) = $this->plupp->getAvailabilitySum($this->startPeriod, $this->length);
 		return $rc === true;
 	}
 }

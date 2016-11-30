@@ -197,7 +197,7 @@ class Plupp {
 	}
 
 	private function _createResourceTable($name) {
-		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name AS ( " .
+		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
 			   "    SELECT a.resourceId AS resourceId, a.teamId AS teamId, a.type AS type, a.departmentId AS departmentId FROM " . self::TABLE_RESOURCE_DATA . " a INNER JOIN ( " .
 			   "        SELECT resourceId, teamId, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " GROUP BY resourceId " .
 			   "    ) b ON a.resourceId = b.resourceId AND a.timestamp = b.latest " .
@@ -208,7 +208,7 @@ class Plupp {
 
 	private function _createAvailabilityTable($name, $startPeriod, $length) {
 		$endPeriod = $startPeriod + $length;
-		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name AS ( " .
+		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
 			   "    SELECT a.resourceId AS resourceId, a.period AS period, a.value AS value FROM " . self::TABLE_AVAILABILITY . " a INNER JOIN ( " .
 			   "        SELECT resourceId, value, period, MAX(timestamp) AS latest FROM " . self::TABLE_AVAILABILITY . " GROUP BY resourceId, period " .
 			   "    ) b ON a.resourceId = b.resourceId AND a.period = b.period AND a.timestamp = b.latest " .
@@ -218,21 +218,27 @@ class Plupp {
 		return $this->_setQuery($sql);
 	}
 
-	public function getTeamAvailability($startPeriod, $length, $teamId = null) {
+	// helper to prepare temporary tables needed to run a resource availbility query
+	private function _getQueryAvailability($startPeriod, $length, $resourceTableName, $availabilityTableName, $sql) {
+		// prepare temporary tables
+		$arr = $this->_createResourceTable($resourceTableName);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
+		$arr = $this->_createAvailabilityTable($availabilityTableName, $startPeriod, $length);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
+
+		return $this->_getQuery($sql);
+	}
+
+	public function getAvailability($startPeriod, $length, $teamId = null) {
 		$resource = 'resourceLatest';
-		$arr = $this->_createResourceTable($resource);
-		if ($arr[0] !== true) {
-			return $arr;
-		}
-
 		$availability = 'availabilityLatest';
-		$arr = $this->_createAvailabilityTable($availability, $startPeriod, $length);
-		if ($arr[0] !== true) {
-			return $arr;
-		}
-
 		$endPeriod = $startPeriod + $length;
 		$sql = '';
+
 		if ($teamId === null) {
 			$sql = "SELECT r.teamId AS id, a.period AS period, SUM(a.value) AS value FROM $availability a " .
 				   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
@@ -245,7 +251,20 @@ class Plupp {
 				   "WHERE r.teamId = $teamId AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 				   "GROUP BY r.teamId, a.period ORDER BY r.teamId ASC, a.period ASC";
 		}
-		return $this->_getQuery($sql);
+
+		return $this->_getQueryAvailability($startPeriod, $length, $resource, $availability, $sql);
+	}
+
+	public function getAvailabilitySum($startPeriod, $length) {
+		$resource = 'resourceLatest';
+		$availability = 'availabilityLatest';
+		$endPeriod = $startPeriod + $length;
+		$sql = "SELECT a.period AS period, SUM(a.value) AS value FROM $availability a " .
+			   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+			   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+			   "GROUP BY a.period ORDER BY a.period ASC";
+
+		return $this->_getQueryAvailability($startPeriod, $length, $resource, $availability, $sql);
 	}
 
 	public function addProject() {
@@ -353,7 +372,7 @@ class Plupp {
 				$rc = false;
 				$result = 'Unable to verify login with unknown source';
 			}
-			
+
 			if (isset($result['password'])) {
 				unset($result['password']);
 			}
