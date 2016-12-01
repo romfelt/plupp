@@ -1,11 +1,11 @@
 <?php
 
-// @TODO add user id to POST
 // @TODO use session_commit() to signal system that session is no longer in use, may execute other scripts in parallel, faster ride?
 
-$DEBUG = true;
+// include configuration
+require_once('plupp.config.php');
 
-if ($DEBUG === true) {
+if ($CONFIG['debug'] === true) {
 	ini_set('display_errors', 'On');
 	error_reporting(E_ALL | E_STRICT);
 }
@@ -35,11 +35,12 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	exit();
 }
 
+// include dependencies
 require_once('plupp.php');
 require_once('session.php');
 
 // start session before page outputs data
-$session = Session::getInstance();
+$session = Session::getInstance($CONFIG['session_timeout']);
 
 $cmd = $request[0];
 $obj = null;
@@ -122,8 +123,11 @@ class ServiceEndPoint {
 		self::replyAndDie($code, $this->reply, $time); // send reply and HTTP status code
 	}
 
-	// Initialize end point. Check if number of required args is availble.
+	// initialize end point
 	protected function init() {
+		global $CONFIG;
+
+		// check if number of required args is available
 		if ($this->request == null || $this->availableArgs < $this->requiredArgs) {
 			self::replyAndDie(self::BAD_REQUEST, 'Not enough arguments in request');
 		}
@@ -133,7 +137,12 @@ class ServiceEndPoint {
 			self::replyAndDie(ServiceEndPoint::UNAUTHORIZED, 'Login in order to use this API');
 		}
 
-		$this->plupp = new Plupp('localhost', 'plupp', 'qwerty', 'plupp');
+		// create plupp database interface
+		$this->plupp = new Plupp($CONFIG['db_host'], $CONFIG['db_username'], $CONFIG['db_password'], $CONFIG['db_database']);
+		if ($this->plupp->isInitialized() !== true) {
+			self::replyAndDie(self::SERVER_ERROR, $this->plupp->isInitialized());
+		}
+
 		return true;
 	}
 

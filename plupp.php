@@ -20,17 +20,21 @@ class Plupp {
 	const TABLE_AVAILABLE = 'available';
 	const TABLE_DEPARTMENT = 'department';
 
+	private $db = null;
+	private $error = null; 
+
 	// @TODO return error message
 	public function __construct($host, $user, $password, $database) {
 		$tmp = new mysqli($host, $user, $password, $database);
 		if ($tmp->connect_errno) {
-			echo 'Failed to connect to MySQL: ' . $tmp->connect_error;
+			$this->error = 'Failed to connect to MySQL: ' . $tmp->connect_error;
 		}
 		else {
 			if (!$tmp->set_charset('utf8')) {
-				echo 'Error loading character set utf8: ' . $tmp->error;
+				$this->error = 'Error loading character set utf8: ' . $tmp->error;
 			}
 			$this->db = $tmp;
+			return;
 		}
 	}
 
@@ -38,6 +42,12 @@ class Plupp {
 		if (isset($this->db)) {
 			$this->db->close();
 		}
+	}
+
+	// check if database initialization was a success, returns true on success, error 
+	// description on failure
+	public function isInitialized() {
+		return $this->error !== null ? $this->error : true;
 	}
 
 	private function _fetachAll($result) {

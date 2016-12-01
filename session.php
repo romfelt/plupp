@@ -37,10 +37,9 @@ class Session {
 	const SESSION_ACCESS = 'access';
 
 	private static $instance; // the only instance
-
 	private $length; // session length in seconds 
 
-	private function __construct($sessionLengthInSeconds = 3600) {
+	private function __construct($sessionLengthInSeconds) {
 		$this->length = $sessionLengthInSeconds;
 		session_start();
 		$this->validate();
@@ -49,12 +48,13 @@ class Session {
 	public function __destruct() {
 	}
 
-	public static function getInstance() {
+	// allow setting session length during first call
+	public static function getInstance($sessionLengthInSeconds = 3600) {
 		if (isset(self::$instance)) {
 			return self::$instance;
 		}
 
-		self::$instance = new self();		
+		self::$instance = new self($sessionLengthInSeconds);
 		return self::$instance;
 	}
 
