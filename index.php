@@ -65,6 +65,7 @@
 						<a onClick="view.quotas();">Quotas</a>
 						<a onClick="view.plans();">Project Plans</a>
 						<a onClick="view.teams();">Teams</a>
+						<a onClick="view.available();">Available Resources</a>
 						<a onClick="">Vacation</a>
 						<a id="viewMode" onClick="toogleTableChart();">llll</a>
 					</td>

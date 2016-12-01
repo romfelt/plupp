@@ -17,7 +17,7 @@ class Plupp {
 	const TABLE_SESSION = 'session';
 	const TABLE_RESOURCE = 'resource';
 	const TABLE_RESOURCE_DATA = 'resource_data';
-	const TABLE_AVAILABILITY = 'availability';
+	const TABLE_AVAILABLE = 'available';
 	const TABLE_DEPARTMENT = 'department';
 
 	// @TODO return error message
@@ -82,14 +82,14 @@ class Plupp {
 		return true;
 	}
 
-	public function setPlan($projectId, $data, $teamIdKey, $periodKey, $valueKey) {
-		$sql = "INSERT INTO " . self::TABLE_PLAN . " (projectId, teamId, period, value) VALUES";
+	public function setPlan($userId, $projectId, $data, $teamIdKey, $periodKey, $valueKey) {
+		$sql = "INSERT INTO " . self::TABLE_PLAN . " (projectId, teamId, period, value, userId) VALUES";
 		$i = 0;
 		foreach ($data as $k => $v) {
 			if ($i++ > 0) {
 				$sql .= ',';
 			}
-			$sql .= " ('$projectId', '$v[$teamIdKey]', '$v[$periodKey]', '$v[$valueKey]')";
+			$sql .= " ('$projectId', '$v[$teamIdKey]', '$v[$periodKey]', '$v[$valueKey]', '$userId')";
 		}
 
 		return $this->_setQuery($sql);
@@ -123,14 +123,14 @@ class Plupp {
 		return $this->_getQuery($sql);
 	}
 
-	public function setQuota($data, $projectIdKey, $periodKey, $valueKey) {
-		$sql = "INSERT INTO " . self::TABLE_QUOTA . " (projectId, period, value) VALUES";
+	public function setQuota($userId, $data, $projectIdKey, $periodKey, $valueKey) {
+		$sql = "INSERT INTO " . self::TABLE_QUOTA . " (projectId, period, value, userId) VALUES";
 		$i = 0;
 		foreach ($data as $k => $v) {
 			if ($i++ > 0) {
 				$sql .= ',';
 			}
-			$sql .= " ('$v[$projectIdKey]', '$v[$periodKey]', '$v[$valueKey]')";
+			$sql .= " ('$v[$projectIdKey]', '$v[$periodKey]', '$v[$valueKey]', '$userId')";
 		}
 
 		return $this->_setQuery($sql);
@@ -206,11 +206,11 @@ class Plupp {
 		return $this->_setQuery($sql);
 	}
 
-	private function _createAvailabilityTable($name, $startPeriod, $length) {
+	private function _createAvailableTable($name, $startPeriod, $length) {
 		$endPeriod = $startPeriod + $length;
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
-			   "    SELECT a.resourceId AS resourceId, a.period AS period, a.value AS value FROM " . self::TABLE_AVAILABILITY . " a INNER JOIN ( " .
-			   "        SELECT resourceId, value, period, MAX(timestamp) AS latest FROM " . self::TABLE_AVAILABILITY . " GROUP BY resourceId, period " .
+			   "    SELECT a.resourceId AS resourceId, a.period AS period, a.value AS value FROM " . self::TABLE_AVAILABLE . " a INNER JOIN ( " .
+			   "        SELECT resourceId, value, period, MAX(timestamp) AS latest FROM " . self::TABLE_AVAILABLE . " GROUP BY resourceId, period " .
 			   "    ) b ON a.resourceId = b.resourceId AND a.period = b.period AND a.timestamp = b.latest " .
 			   "    WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 			   ")";
@@ -219,13 +219,13 @@ class Plupp {
 	}
 
 	// helper to prepare temporary tables needed to run a resource availbility query
-	private function _getQueryAvailability($startPeriod, $length, $resourceTableName, $availabilityTableName, $sql) {
+	private function _getQueryAvailable($startPeriod, $length, $resourceTableName, $availableTableName, $sql) {
 		// prepare temporary tables
 		$arr = $this->_createResourceTable($resourceTableName);
 		if ($arr[0] !== true) {
 			return $arr;
 		}
-		$arr = $this->_createAvailabilityTable($availabilityTableName, $startPeriod, $length);
+		$arr = $this->_createAvailableTable($availableTableName, $startPeriod, $length);
 		if ($arr[0] !== true) {
 			return $arr;
 		}
@@ -233,38 +233,38 @@ class Plupp {
 		return $this->_getQuery($sql);
 	}
 
-	public function getAvailability($startPeriod, $length, $teamId = null) {
+	public function getAvailable($startPeriod, $length, $teamId = null) {
 		$resource = 'resourceLatest';
-		$availability = 'availabilityLatest';
+		$available = 'availableLatest';
 		$endPeriod = $startPeriod + $length;
 		$sql = '';
 
 		if ($teamId === null) {
-			$sql = "SELECT r.teamId AS id, a.period AS period, SUM(a.value) AS value FROM $availability a " .
+			$sql = "SELECT r.teamId AS id, a.period AS period, SUM(a.value) AS value FROM $available a " .
 				   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 				   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 				   "GROUP BY r.teamId, a.period ORDER BY r.teamId ASC, a.period ASC";
 		}
 		else {
-			$sql = "SELECT r.teamId AS id, a.period AS period, SUM(a.value) AS value FROM $availability a " .
+			$sql = "SELECT r.teamId AS id, a.period AS period, SUM(a.value) AS value FROM $available a " .
 				   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 				   "WHERE r.teamId = $teamId AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 				   "GROUP BY r.teamId, a.period ORDER BY r.teamId ASC, a.period ASC";
 		}
 
-		return $this->_getQueryAvailability($startPeriod, $length, $resource, $availability, $sql);
+		return $this->_getQueryAvailable($startPeriod, $length, $resource, $available, $sql);
 	}
 
-	public function getAvailabilitySum($startPeriod, $length) {
+	public function getAvailableSum($startPeriod, $length) {
 		$resource = 'resourceLatest';
-		$availability = 'availabilityLatest';
+		$available = 'availableLatest';
 		$endPeriod = $startPeriod + $length;
-		$sql = "SELECT a.period AS period, SUM(a.value) AS value FROM $availability a " .
+		$sql = "SELECT a.period AS period, SUM(a.value) AS value FROM $available a " .
 			   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 			   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 			   "GROUP BY a.period ORDER BY a.period ASC";
 
-		return $this->_getQueryAvailability($startPeriod, $length, $resource, $availability, $sql);
+		return $this->_getQueryAvailable($startPeriod, $length, $resource, $available, $sql);
 	}
 
 	public function addProject() {

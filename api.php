@@ -26,8 +26,8 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetTeam::DESCRIPTION . '<br>';
 	echo GetTeamPlans::DESCRIPTION . '<br>';
 	echo GetTeamsPlan::DESCRIPTION . '<br>';
-	echo GetAvailability::DESCRIPTION . '<br>';
-	echo GetAvailabilitySum::DESCRIPTION . '<br>';
+	echo GetAvailable::DESCRIPTION . '<br>';
+	echo GetAvailableSum::DESCRIPTION . '<br>';
 	echo GetResource::DESCRIPTION . '<br>';
 	echo PostLogin::DESCRIPTION . '<br>';
 	echo GetSession::DESCRIPTION . '<br>';
@@ -58,8 +58,8 @@ else if ($method == 'GET') {
 		case GetTeam::API: $obj = new GetTeam($request); break;
 		case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
 		case GetTeamsPlan::API: $obj = new GetTeamsPlan($request); break;
-		case GetAvailability::API: $obj = new GetAvailability($request); break;
-		case GetAvailabilitySum::API: $obj = new GetAvailabilitySum($request); break;
+		case GetAvailable::API: $obj = new GetAvailable($request); break;
+		case GetAvailableSum::API: $obj = new GetAvailableSum($request); break;
 		case GetProject::API: $obj = new GetProject($request); break;
 		case GetResource::API: $obj = new GetResource($request); break;
 		case GetQuota::API: $obj = new GetQuota($request); break;
@@ -202,7 +202,7 @@ class SetPlan extends ServiceEndPoint {
 	protected function service() {
 		$projectId = $this->request[1];
 		$data = $_POST['data'];
-		list($rc, $this->reply) = $this->plupp->setPlan($projectId, $data, 'id', 'period', 'value');
+		list($rc, $this->reply) = $this->plupp->setPlan($this->session->getUserId(), $projectId, $data, 'id', 'period', 'value');
 		return $rc === true;
 	}
 }
@@ -243,7 +243,7 @@ class SetQuota extends ServiceEndPoint {
 
 	protected function service() {
 		$data = $_POST['data'];
-		list($rc, $this->reply) = $this->plupp->setQuota($data, 'id', 'period', 'value');
+		list($rc, $this->reply) = $this->plupp->setQuota($this->session->getUserId(), $data, 'id', 'period', 'value');
 		return $rc === true;
 	}
 }
@@ -319,24 +319,24 @@ class GetTeamPlans extends ServiceEndPoint {
 	}
 }
 
-class GetAvailability extends ServiceEndPointIntervalId {
-	const DESCRIPTION = 'GET /availability/{startPeriod}/{length}/{teamId}, get aggregated resource availability for a specific team within a given time intervall, i.e. how much of a team is available in total. ´teamId´ is optional, leaving this blank will return all teams.';
-	const API = 'availability';
+class GetAvailable extends ServiceEndPointIntervalId {
+	const DESCRIPTION = 'GET /available/{startPeriod}/{length}/{teamId}, get aggregated resource available for a specific team within a given time intervall, i.e. how much of a team is available in total. ´teamId´ is optional, leaving this blank will return all teams.';
+	const API = 'available';
 
 	protected function service() {
 		$this->initArgs();
-		list($rc, $this->reply) = $this->plupp->getAvailability($this->startPeriod, $this->length, $this->optionalId);
+		list($rc, $this->reply) = $this->plupp->getAvailable($this->startPeriod, $this->length, $this->optionalId);
 		return $rc === true;
 	}
 }
 
-class GetAvailabilitySum extends ServiceEndPointIntervalId {
-	const DESCRIPTION = 'GET /availabilitysum/{startPeriod}/{length}, get total number of resources available within a given time intervall.';
-	const API = 'availabilitysum';
+class GetAvailableSum extends ServiceEndPointIntervalId {
+	const DESCRIPTION = 'GET /availablesum/{startPeriod}/{length}, get total number of resources available within a given time intervall.';
+	const API = 'availablesum';
 
 	protected function service() {
 		$this->initArgs();
-		list($rc, $this->reply) = $this->plupp->getAvailabilitySum($this->startPeriod, $this->length);
+		list($rc, $this->reply) = $this->plupp->getAvailableSum($this->startPeriod, $this->length);
 		return $rc === true;
 	}
 }

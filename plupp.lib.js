@@ -69,10 +69,16 @@ Plupp = {
 		return new PluppRequest("team");
 	},
 	getTeamsPlan:function(startPeriod, length) {
-		return new PluppRequest("teamsplan/" + "/" + startPeriod + "/" + length);
+		return new PluppRequest("teamsplan/" + startPeriod + "/" + length);
 	},
 	getTeamPlans:function(teamId, startPeriod, length) {
 		return new PluppRequest("teamplans/" + teamId + "/" + startPeriod + "/" + length);
+	},
+	getAvailable:function(startPeriod, length, teamId) {
+		return this._getIntervalWithOptionalId("available", startPeriod, length, teamId);
+	},
+	getAvailableSum:function(startPeriod, length) {
+		return new PluppRequest("availablesum/" + startPeriod + "/" + length);
 	},
 	setPlan:function(projectId, data) {
 		return new PluppRequest("plan/" + projectId, data);
@@ -97,5 +103,13 @@ Plupp = {
 	},
 	getQuotaSum:function(startPeriod, length) {
 		return new PluppRequest("quotasum/" + startPeriod + "/" + length);
+	},
+
+	// helper function to get a service with a given interval and optional id
+	_getIntervalWithOptionalId:function(service, startPeriod, length, id) {
+		if (typeof(id) === 'undefined') {
+			return new PluppRequest(service + "/" + startPeriod + "/" + length);
+		}
+		return new PluppRequest(service + "/" + startPeriod + "/" + length + "/" + id);
 	}
 }

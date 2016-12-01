@@ -157,22 +157,47 @@ function PluppView(startPeriod, length) {
 		self.title = 'Team Resource Requests';
 		var teams = Plupp.getTeams();
 		var plans = Plupp.getTeamsPlan(self.startPeriod, self.length);
-		// @TODO add available
+		var avail = Plupp.getAvailableSum(self.startPeriod, self.length);
 
 		$.when(
-			plans.run(), teams.run()
+			plans.run(), teams.run(), avail.run()
 		)
 		.then(function() {
 			if (self.mode() == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
 				t.addDataSection(teams.reply.data, plans.reply.data, 'constant');
 				t.addSum();
-				t.addDataRow('Available', [], 'header');
+				t.addDataRow('Available', avail.reply.data, 'header');
 				t.addDelta(); // delta = available - sum
 				t.build(false, $('#' + self.tableContainerId), self.team);
 			}
 			else {
-				self._chartStackedArea('team', teams, plans);
+				self._chartStackedArea('team', teams, plans, avail, 'Available');
+			}
+		})
+		.fail(self.onError);
+	}
+
+	this.available = function() {
+		self.title = 'Resource Availability';
+		var teams = Plupp.getTeams();
+		var avail = Plupp.getAvailable(self.startPeriod, self.length);
+		var quotas = Plupp.getQuotaSum(self.startPeriod, self.length);
+
+		$.when(
+			avail.run(), teams.run(), quotas.run()
+		)
+		.then(function() {
+			if (self.mode() == 'table') {
+				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
+				t.addDataSection(teams.reply.data, avail.reply.data, 'constant');
+				t.addSum();
+				t.addDataRow('Quotas', quotas.reply.data, 'header');
+				t.addDelta(); // delta = quota - available
+				t.build(false, $('#' + self.tableContainerId), self.team);
+			}
+			else {
+				self._chartStackedArea('team', teams, avail, quotas, 'Quota');
 			}
 		})
 		.fail(self.onError);
@@ -192,7 +217,7 @@ function PluppView(startPeriod, length) {
 			if (typeof(project.reply.data) != 'undefined') {
 				self.title += project.reply.data[0].name;
 			}
-			
+
 			if (self.mode() == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'plan', projectId);
 				t.addDataSection(teams.reply.data, plan.reply.data, 'editable');
@@ -213,10 +238,10 @@ function PluppView(startPeriod, length) {
 		var team = Plupp.getTeam(teamId);
 		var plans = Plupp.getTeamPlans(teamId, self.startPeriod, self.length);
 		var projects = Plupp.getProjects();
-		// @TODO add available
+		var avail = Plupp.getAvailable(self.startPeriod, self.length, teamId);
 
 		$.when(
-			team.run(), plans.run(), projects.run()
+			team.run(), plans.run(), projects.run(), avail.run()
 		)
 		.then(function() {
 			if (typeof(team.reply.data) != 'undefined') {
@@ -227,12 +252,12 @@ function PluppView(startPeriod, length) {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
 				t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
 				t.addSum();
-				t.addDataRow('Available', [], 'header');
+				t.addDataRow('Available', avail.reply.data, 'header');
 				t.addDelta(); // delta = available - sum
 				t.build(false, $('#' + self.tableContainerId), self.project);
 			}
 			else {
-				self._chartStackedArea('project', projects, plans);
+				self._chartStackedArea('project', projects, plans, avail, 'Available');
 			}
 		})
 		.fail(self.onError);
