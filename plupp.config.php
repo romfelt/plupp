@@ -11,11 +11,15 @@ $CONFIG['debug'] 			= true; // enable debug
 $CONFIG['db_host'] 			= 'localhost';
 $CONFIG['db_username']		= 'plupp';
 $CONFIG['db_password'] 		= 'qwerty';
-$CONFIG['db_database']		= 'plupp';
+$CONFIG['db_database']		= 'plupp-dev';
 
 //
 // Session settings
 //
 $CONFIG['session_timeout']	= 24 * 60 * 60; // time in seconds before an inactive user session is ended
+
+//
+// LDAP settings
+//
 
 ?>

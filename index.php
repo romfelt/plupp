@@ -5,7 +5,9 @@
 		<link rel="shortcut icon" href="/plupp/plupp.png" />
 		<link rel="stylesheet" type="text/css" href="plupp.css" />
 		<script src="jquery-3.1.1.min.js"></script>
+		<script src="moment.min.js"></script>
 		<script src="flot/jquery.flot.js"></script>
+		<script src="flot/jquery.flot.time.js"></script>
 		<script src="flot/jquery.flot.stack.js"></script>
 		<script src="flot/jquery.flot.resize.js"></script>
 		<script src="editabletable.js"></script>
@@ -14,7 +16,7 @@
 		<script src="plupp.chart.lib.js"></script>
 		<script src="plupp.js"></script>
 		<script>
-			var view = new PluppView(11, 24);
+			var view = new PluppView('2016-11-01', 24);
 
 			function onResize() {
 				// handle menu bar overflow

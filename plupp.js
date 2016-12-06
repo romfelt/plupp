@@ -1,12 +1,18 @@
-// @TODO date formatting
 // @TODO add last updated timestamp to each view
-// @TODO integrate graph library: area, bars, heat-map pie charts (project/teams)
 
 $.fn.center = function() {
 	this.css('position', 'fixed');
 	this.css('top', ($(window).height() / 2 - this.height() / 2) + 'px');
 	this.css('left', ($(window).width() / 2 - this.width() / 2) + 'px');
 	return this;
+}
+
+// returns delta number of months as: before - after, where before < after and before 
+// and after are given as '2016-12-04'
+function monthsBetween(before, after) {
+	var a = moment(after);
+	var b = moment(before);
+	return a.diff(b, 'months');
 }
 
 function showModal(modalId) {
@@ -81,6 +87,9 @@ function doLogout() {
 
 //
 // Class for handling Plupp Views at UI application
+//
+// @param startPeriod is a date, e.g. 2016-12-01
+// @param length is number of months from the startPeriod
 //
 function PluppView(startPeriod, length) {
 	var self = this; // keep reference to this object to be used independent of call context
