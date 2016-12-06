@@ -1,6 +1,5 @@
 <?php
 
-// @TODO add CONFIG struct in separate file to allow configuration of multiple instances
 // @TODO add real_escape to prevent injection via strings
 // @TODO add casting integer to avoid SQL injection
 //       $aid = (int) $_GET['aid'];
@@ -48,6 +47,13 @@ class Plupp {
 	// description on failure
 	public function isInitialized() {
 		return $this->error !== null ? $this->error : true;
+	}
+
+	// helper to calculate end period value based on startPeriod and length of interval
+	private function _endPeriod($startPeriod, $length) {
+		$d = new DateTime($startPeriod);
+		$d->add(new DateInterval('P' . $length . 'M'));
+		return $d->format('Y-m-d');
 	}
 
 	private function _fetachAll($result) {
@@ -107,7 +113,7 @@ class Plupp {
 
 	public function getPlan($startPeriod, $length, $projectId = null) {
 		$sql = '';
-		$endPeriod = $startPeriod + $length;
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		if ($projectId === null) {
 			$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
 				   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
@@ -124,7 +130,7 @@ class Plupp {
 	}
 
 	public function getPlanSum($startPeriod, $length) {
-		$endPeriod = $startPeriod + $length;
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = "SELECT p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
 			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
@@ -148,7 +154,7 @@ class Plupp {
 
 	public function getQuota($startPeriod, $length, $projectId = null) {
 		$sql = '';
-		$endPeriod = $startPeriod + $length;
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		if ($projectId === null){
 			$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
 				   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
@@ -166,7 +172,7 @@ class Plupp {
 	}
 
 	public function getQuotaSum($startPeriod, $length) {
-		$endPeriod = $startPeriod + $length;
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = "SELECT p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
 			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
@@ -187,7 +193,7 @@ class Plupp {
 	}
 
 	public function getTeamsPlan($startPeriod, $length) {
-		$endPeriod = $startPeriod + $length;
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = "SELECT p.teamId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
 			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
@@ -197,7 +203,7 @@ class Plupp {
 	}
 
 	public function getTeamPlans($teamId, $startPeriod, $length) {
-		$endPeriod = $startPeriod + $length;
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
 			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE teamId = '$teamId' GROUP BY projectId, period" .
 			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
@@ -217,7 +223,7 @@ class Plupp {
 	}
 
 	private function _createAvailableTable($name, $startPeriod, $length) {
-		$endPeriod = $startPeriod + $length;
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
 			   "    SELECT a.resourceId AS resourceId, a.period AS period, a.value AS value FROM " . self::TABLE_AVAILABLE . " a INNER JOIN ( " .
 			   "        SELECT resourceId, value, period, MAX(timestamp) AS latest FROM " . self::TABLE_AVAILABLE . " GROUP BY resourceId, period " .
@@ -246,7 +252,7 @@ class Plupp {
 	public function getAvailable($startPeriod, $length, $teamId = null) {
 		$resource = 'resourceLatest';
 		$available = 'availableLatest';
-		$endPeriod = $startPeriod + $length;
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = '';
 
 		if ($teamId === null) {
@@ -268,7 +274,7 @@ class Plupp {
 	public function getAvailableSum($startPeriod, $length) {
 		$resource = 'resourceLatest';
 		$available = 'availableLatest';
-		$endPeriod = $startPeriod + $length;
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = "SELECT a.period AS period, SUM(a.value) AS value FROM $available a " .
 			   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 			   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .

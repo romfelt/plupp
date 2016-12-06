@@ -1,7 +1,8 @@
+// @TODO remove args, reuse from parent reference
+
 //
 // Class for building dynamic and interactive charts
 //
-// @TODO remove args, reuse from parent reference
 function PluppChart(parent, title, periodType, startPeriod, length) {
 	var self = this; // keep reference to this object to be used independent of call context
 	this.title = title;
@@ -15,10 +16,12 @@ function PluppChart(parent, title, periodType, startPeriod, length) {
 
 	// returns array of length with pre-defined values
 	this.getPointArray = function(startValue, increment) {
+		var m = moment(self.startPeriod);
 		var data = [];
 		for (var i = 0; i < self.length; i++) {
-			data.push([self.startPeriod + i, startValue]);
+			data.push([m.valueOf(), startValue]); // get javascript timestamp required by Flot
 			startValue += increment;
+			m.add(1, 'month');
 		}
 		return data;
 	}
@@ -39,7 +42,8 @@ function PluppChart(parent, title, periodType, startPeriod, length) {
 		// add real values to datapoints using lookup and access data by reference
 		$.each(values, function(i, v) {
 			if (typeof lookup[v.id] !== 'undefined') {
-				lookup[v.id][v.period - self.startPeriod][1] = v.value;
+				var m = monthsBetween(self.startPeriod, v.period);
+				lookup[v.id][m][1] = v.value;
 			}
 		});
 	}
@@ -51,7 +55,8 @@ function PluppChart(parent, title, periodType, startPeriod, length) {
 
 		// add real values to datapoints
 		$.each(values, function(i, v) {
-			series.data[v.period - self.startPeriod][1] = v.value;
+			var m = monthsBetween(self.startPeriod, v.period);
+			series.data[m][1] = v.value;
 		});
 
 		self.series.push(series);
@@ -90,6 +95,10 @@ function PluppChart(parent, title, periodType, startPeriod, length) {
 			yaxis: {
 				min: 0,
 //				max: 150
+			},
+			xaxis: {
+				mode: "time",
+				minTickSize: [1, "month"]
 			},
 			grid: {
 				borderWidth: 0,

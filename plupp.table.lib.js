@@ -1,3 +1,5 @@
+// @TODO remove args, reuse from parent reference
+
 //
 // Class for building dynamic and interactive tables
 //
@@ -22,10 +24,21 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		return data;
 	}
 
+	// create an array of zeroes to be reused
 	self.zeroes = self.getArray(length, 0, 0);
+
+	// initilize table with a date row on top
 	if (periodType == 'month') {
-		var months = self.getArray(length, startPeriod, 1);
+		var m = moment(self.startPeriod);
+		var months = [];
+		for (var i = 0; i < length; i++) {
+			months.push([m.format("MMM YYYY"), m.format("YYYY-MM-DD")]); // store both user format as well as API format (2016-01-01)
+			m.add(1, 'month');
+		}
 		self.table = [{'type': 'time', 'title': 'Month', 'data': months}];
+	}
+	else {
+		console.log("Not yet supported!");
 	}
 
 	this.addDataSection = function(titles, values, type) {
@@ -43,7 +56,8 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		// add real cell values
 		$.each(values, function(i, v) {
 			if (typeof lookup[v.id] !== 'undefined') {
-				lookup[v.id].data[v.period - self.startPeriod] = v.value;
+				var m = monthsBetween(self.startPeriod, v.period);
+				lookup[v.id].data[m] = v.value;
 			}
 		});
 	}
@@ -51,7 +65,8 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 	this.addDataRow = function(title, values, type) {
 		var data = self.zeroes.slice(); // make copy of array to create new object
 		$.each(values, function(i, v) {
-			data[v.period - self.startPeriod] = v.value;
+			var m = monthsBetween(self.startPeriod, v.period);
+			data[m] = v.value;
 		});
 		self.table.push({'type': type, 'title': title, 'data': data});
 	}
@@ -164,7 +179,12 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 
 			tr.append(td);
 			if (obj.type == 'time') {
-				self.addCells(tr, obj.data, 'cell-header');
+				$.each(obj.data, function(i, v) {
+					tr.append($('<td/>')
+						.addClass('cell-header')
+						.text(v[0])
+						.data('period', v[1])); // store timestamp as data in cell to be used when posting
+				});
 			}
 			else if (obj.type == 'editable') {
 				tr.data('id', obj.id); // row id used for interfacing with database, such as projectId or teamId
@@ -243,8 +263,8 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 
 		// get all dirty cells, i.e. those modified
 		$('#' + self.tableId + ' td.cell-dirty').each(function(i, e) {
-			// @TODO move time period value to data field instead, allows other formatting of date in cell
-			var period = $('#' + self.tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')').text(); // time period value store in to top cell in same column
+			// time period value is stored as data in top cell of same column
+			var period = $('#' + self.tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')').data('period'); 
 		    var id = $(e).closest('tr').data('id'); // id value stored as data in row element
 		    var value = parseFloat($(e).text());
 			if (!isNaN(value)) { // @TODO add checks for all variables
