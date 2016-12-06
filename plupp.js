@@ -112,6 +112,7 @@ function PluppView(startPeriod, length) {
 	}
 
 	this.quotas = function() {
+		self.title = 'Project Quotas';
 		var projects = Plupp.getProjects();
 		var quotas = Plupp.getQuotas(self.startPeriod, self.length);
 		var requested = Plupp.getPlanSum(self.startPeriod, self.length);
@@ -121,7 +122,7 @@ function PluppView(startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode() == 'table') {
-				var t = new PluppTable('Project Quotas', 'month', self.startPeriod, self.length, 'quotas');
+				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'quotas');
 				t.addDataSection(projects.reply.data, quotas.reply.data, 'editable');
 				t.addSum();
 				t.addDataRow('Available', [], 'header');
