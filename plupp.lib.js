@@ -62,6 +62,12 @@ Plupp = {
 	getProjects:function() {
 		return new PluppRequest("project");
 	},
+	getDepartment:function(teamId) {
+		return this._getWithOptionalId("department", teamId);
+	},
+	getTeams:function() {
+		return new PluppRequest("team");
+	},
 	getTeam:function(teamId) {
 		return new PluppRequest("team/" + teamId);
 	},
@@ -111,5 +117,13 @@ Plupp = {
 			return new PluppRequest(service + "/" + startPeriod + "/" + length);
 		}
 		return new PluppRequest(service + "/" + startPeriod + "/" + length + "/" + id);
+	},
+
+	// helper function to get a service with an optional id
+	_getWithOptionalId:function(service, id) {
+		if (typeof(id) === 'undefined') {
+			return new PluppRequest(service);
+		}
+		return new PluppRequest(service + "/" + id);
 	}
 }

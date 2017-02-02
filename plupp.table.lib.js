@@ -57,7 +57,8 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		$.each(values, function(i, v) {
 			if (typeof lookup[v.id] !== 'undefined') {
 				var m = monthsBetween(self.startPeriod, v.period);
-				lookup[v.id].data[m] = v.value;
+				var f = parseFloat(v.value);
+				lookup[v.id].data[m] = f;
 			}
 		});
 	}
@@ -66,7 +67,8 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		var data = self.zeroes.slice(); // make copy of array to create new object
 		$.each(values, function(i, v) {
 			var m = monthsBetween(self.startPeriod, v.period);
-			data[m] = v.value;
+			var f = parseFloat(v.value);
+			data[m] = f;
 		});
 		self.table.push({'type': type, 'title': title, 'data': data});
 	}
@@ -120,6 +122,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 			var c = $(e).index();
 		    var r = $(e).closest('tr').index();
 			var s = self.sum(c, 1, 1, r - 1);
+			s = s.toFixed(2);
 			$(e).text(s);
 		});
 	}
@@ -132,6 +135,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 			var s = self.delta(c, r + tr.data('rowA'), c, r + tr.data('rowB'));
 
 			// set new value and class accordingly
+			s = s.toFixed(2);
 			$(e).text(s);
 			if (s < 0) {
 				$(e).addClass('cell-delta-negative');

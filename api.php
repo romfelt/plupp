@@ -23,6 +23,7 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetQuota::DESCRIPTION . '<br>';
 	echo GetQuotaSum::DESCRIPTION . '<br>';
 	echo GetProject::DESCRIPTION . '<br>';
+	echo GetDepartment::DESCRIPTION . '<br>';
 	echo GetTeam::DESCRIPTION . '<br>';
 	echo GetTeamPlans::DESCRIPTION . '<br>';
 	echo GetTeamsPlan::DESCRIPTION . '<br>';
@@ -56,6 +57,7 @@ else if ($method == 'GET') {
 	switch ($cmd) {
 		case GetPlan::API: $obj = new GetPlan($request); break;
 		case GetPlanSum::API: $obj = new GetPlanSum($request); break;
+		case GetDepartment::API: $obj = new GetDepartment($request); break;
 		case GetTeam::API: $obj = new GetTeam($request); break;
 		case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
 		case GetTeamsPlan::API: $obj = new GetTeamsPlan($request); break;
@@ -280,6 +282,17 @@ class GetQuotaSum extends ServiceEndPoint {
 		$startPeriod = $this->request[1];
 		$length = $this->request[2];
 		list($rc, $this->reply) = $this->plupp->GetQuotaSum($startPeriod, $length);
+		return $rc === true;
+	}
+}
+
+class GetDepartment extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /department/{departmentId}, get department information for a specific department. {departmentId} is optional, leaving this blank will return all departments.';
+	const API = 'department';
+
+	protected function service() {
+		$departmentId = $this->availableArgs > $this->requiredArgs ? $this->request[1] : null;
+		list($rc, $this->reply) = $this->plupp->getDepartment($departmentId);
 		return $rc === true;
 	}
 }

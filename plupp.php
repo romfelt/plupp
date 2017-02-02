@@ -185,6 +185,13 @@ class Plupp {
 		// @TODO add me
 	}
 
+	public function getDepartment($departmentId = null) {
+		if ($departmentId === null) {
+			return $this->_getQuery("SELECT id, name FROM " . self::TABLE_DEPARTMENT . " ORDER BY name ASC");
+		}
+		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_DEPARTMENT . " WHERE id = '$departmentId'");
+	}
+
 	public function getTeam($teamId = null) {
 		if ($teamId === null) {
 			return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " ORDER BY name ASC");
