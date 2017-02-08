@@ -16,7 +16,7 @@
 		<script src="plupp.chart.lib.js"></script>
 		<script src="plupp.js"></script>
 		<script>
-			var view = new PluppView('2016-11-01', 24);
+			var view = new PluppView('table-container', 'chart-container', '2016-11-01', 24);
 
 			function onResize() {
 				// handle menu bar overflow
@@ -24,21 +24,13 @@
 				//$('#chart-container').innerHeight(($('body').height() - $('#menu').innerHeight()) + 'px');
 			}
 
-			function toogleTableChart() {
-				$('#table-container').hide();
-				$('#chart-container').hide();
-				if (view.mode() == 'chart') {
-					view.mode('table');
-					$('#viewMode').text('Change to Chart view');
-					$('#table-container').show();
+			function toogleTableChart(mode) {
+				if (view.setViewMode(mode) == 'chart') {
+					$('#viewMode').text('Change to Table view');
 				}
 				else {
-					view.mode('chart');
-					$('#viewMode').text('Change to Table view');
-					$('#chart-container').show();
+					$('#viewMode').text('Change to Chart view');
 				}
-				// @TODO make switch to same view
-				view.plans();
 			}
 
 			$(window).resize(function() {
@@ -47,10 +39,9 @@
 
 			$(document).ready(function() {
 				onResize();
-				console.log("Plupp is ready!");
-				toogleTableChart();
+				toogleTableChart('chart');
 				doSessionUpdate('menuSessionActive', 'menuSessionInactive');
-				view.plans();
+				console.log("Plupp is ready!");
 			});
 
 		</script>

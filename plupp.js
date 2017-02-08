@@ -1,5 +1,8 @@
-// @TODO add last updated timestamp to each view
-// @TODO availableSum is not needed? use available with not filter/id instead?
+// @TODO add last X updated timestamp/user to each view
+// @TODO allow browse history byt setting a timestamp
+// @TODO add tag support: i.e. Evander TG2 @ 2017-01-23 12:02:11
+// @TODO add new and update resources
+// @TODO allocation
 
 $.fn.center = function() {
 	this.css('position', 'fixed');
@@ -89,30 +92,60 @@ function doLogout() {
 //
 // Class for handling Plupp Views at UI application
 //
+// @param tableContainerId DOM id for table div
+// @param chartContainerId DOM id for chart div
 // @param startPeriod is a date, e.g. 2016-12-01
 // @param length is number of months from the startPeriod
 //
-function PluppView(startPeriod, length) {
+function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 	var self = this; // keep reference to this object to be used independent of call context
+	this.tableContainerId = tableContainerId;
+	this.chartContainerId = chartContainerId;
 	this.startPeriod = startPeriod;
 	this.length = length;
-	this.tableContainerId = 'table-container';
-	this.chartContainerId = 'chart-container';
 	this.title = 'Define Title Here';
-	this._mode = 'table'; // possible modes are 'table' or 'chart'
+	this.mode = 'chart'; // possible view modes are 'table' or 'chart'
+	this.view = null; // current view
+	this.viewArg = null; // current view argument
 
-	this.mode = function(mode) {
+	// @param mode The new mode to set, if left undefined it is toggled
+	this.setViewMode = function(mode) {
 		if (typeof(mode) == 'undefined') {
-			return self._mode;
+			// toggle mode
+			self.mode = self.mode == 'table' ? 'chart' : 'table';
 		}
-		self._mode = mode;
+		else if (mode == 'table' || mode == 'chart') {
+			self.mode = mode;
+		}
+
+		// clear container and change to it
+		if (self.mode == 'chart') {
+			$('#' + self.tableContainerId).hide();
+			$('#' + self.chartContainerId).html('').show();
+		}
+		else {
+			$('#' + self.chartContainerId).hide();
+			$('#' + self.tableContainerId).html('').show();
+		}
+
+		// call call-back
+		if (typeof(self.view) == 'function') {
+			self.view(self.viewArg)
+		}
+		else {
+			console.log("ignoring call to unknown view function, calling default");
+			self.plans();
+		}
+
+		return self.mode;
 	}
 
-	this.onError = function() {
-		console.log("something went wrong!");
+	this.onError = function(e) {
+		console.log("something went wrong: " + e);
 	}
 
 	this.quotas = function() {
+		self.view = self.quotas;
 		self.title = 'Project Quotas';
 		var projects = Plupp.getProjects();
 		var quotas = Plupp.getQuotas(self.startPeriod, self.length);
@@ -122,7 +155,7 @@ function PluppView(startPeriod, length) {
 			quotas.run(), projects.run(), requested.run()
 		)
 		.then(function() {
-			if (self.mode() == 'table') {
+			if (self.mode == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'quotas');
 				t.addDataSection(projects.reply.data, quotas.reply.data, 'editable');
 				t.addSum();
@@ -140,6 +173,7 @@ function PluppView(startPeriod, length) {
 	}
 
 	this.plans = function() {
+		self.view = self.plans;
 		self.title = 'Project Resource Plans';
 		var projects = Plupp.getProjects();
 		var plans = Plupp.getPlans(self.startPeriod, self.length);
@@ -149,7 +183,7 @@ function PluppView(startPeriod, length) {
 			plans.run(), projects.run(), quotas.run()
 		)
 		.then(function() {
-			if (self.mode() == 'table') {
+			if (self.mode == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
 				t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
 				t.addSum();
@@ -165,16 +199,17 @@ function PluppView(startPeriod, length) {
 	}
 
 	this.teams = function() {
+		self.view = self.teams;
 		self.title = 'Team Resource Requests';
 		var teams = Plupp.getTeams();
 		var plans = Plupp.getTeamsPlan(self.startPeriod, self.length);
-		var avail = Plupp.getAvailableSum(self.startPeriod, self.length);
+		var avail = Plupp.getAvailable(self.startPeriod, self.length);
 
 		$.when(
 			plans.run(), teams.run(), avail.run()
 		)
 		.then(function() {
-			if (self.mode() == 'table') {
+			if (self.mode == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
 				t.addDataSection(teams.reply.data, plans.reply.data, 'constant');
 				t.addSum();
@@ -190,16 +225,17 @@ function PluppView(startPeriod, length) {
 	}
 
 	this.available = function() {
+		self.view = self.available;
 		self.title = 'Resource Availability';
 		var teams = Plupp.getTeams();
-		var avail = Plupp.getAvailable(self.startPeriod, self.length);
+		var avail = Plupp.getAvailable(self.startPeriod, self.length, 'team');
 		var quotas = Plupp.getQuotaSum(self.startPeriod, self.length);
 
 		$.when(
 			avail.run(), teams.run(), quotas.run()
 		)
 		.then(function() {
-			if (self.mode() == 'table') {
+			if (self.mode == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
 				t.addDataSection(teams.reply.data, avail.reply.data, 'constant');
 				t.addSum();
@@ -215,6 +251,7 @@ function PluppView(startPeriod, length) {
 	}
 
 	this.departments = function() {
+		self.view = self.departments;
 		self.title = 'Departments';
 		var depts = Plupp.getDepartment();
 		var avail = Plupp.getAvailable(self.startPeriod, self.length, 'department');
@@ -224,7 +261,7 @@ function PluppView(startPeriod, length) {
 			avail.run(), depts.run(), quotas.run()
 		)
 		.then(function() {
-			if (self.mode() == 'table') {
+			if (self.mode == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
 				t.addDataSection(depts.reply.data, avail.reply.data, 'constant');
 				t.addSum();
@@ -240,6 +277,8 @@ function PluppView(startPeriod, length) {
 	}
 
 	this.department = function(departmentId) {
+		self.view = self.department;
+		self.viewArg = departmentId;
 		self.title = 'Department: ';
 		var dept = Plupp.getDepartment(departmentId);
 		var resc = Plupp.getResource('department', departmentId);
@@ -252,7 +291,7 @@ function PluppView(startPeriod, length) {
 			if (typeof(dept.reply.data) != 'undefined') {
 				self.title += dept.reply.data[0].name;
 			}
-			if (self.mode() == 'table') {
+			if (self.mode == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'resourceavailability', 666);
 				t.addDataSection(resc.reply.data, avail.reply.data, 'editable');
 				t.addSum();
@@ -260,12 +299,15 @@ function PluppView(startPeriod, length) {
 			}
 			else {
 //				self._chartStackedArea('resource', teams, avail, quotas, 'Quota');
+				console.log("chart not supported for this view");
 			}
 		})
 		.fail(self.onError);
 	}
 
 	this.project = function(projectId) {
+		self.view = self.project;
+		self.viewArg = projectId;
 		self.title = 'Project Resource Plan: ';
 		var teams = Plupp.getTeams();
 		var plan = Plupp.getPlan(projectId, startPeriod, length);
@@ -280,7 +322,7 @@ function PluppView(startPeriod, length) {
 				self.title += project.reply.data[0].name;
 			}
 
-			if (self.mode() == 'table') {
+			if (self.mode == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'plan', projectId);
 				t.addDataSection(teams.reply.data, plan.reply.data, 'editable');
 				t.addSum();
@@ -296,6 +338,8 @@ function PluppView(startPeriod, length) {
 	}
 
 	this.team = function(teamId) {
+		self.view = self.team;
+		self.viewArg = teamId;
 		self.title = 'Team Resource Requests: ';
 		var team = Plupp.getTeam(teamId);
 		var plans = Plupp.getTeamPlans(teamId, self.startPeriod, self.length);
@@ -310,7 +354,7 @@ function PluppView(startPeriod, length) {
 				self.title += team.reply.data[0].name;
 			}
 
-			if (self.mode() == 'table') {
+			if (self.mode == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
 				t.addDataSection(projects.reply.data, plans.reply.data, 'constant');
 				t.addSum();
