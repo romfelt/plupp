@@ -65,6 +65,15 @@ Plupp = {
 	getDepartment:function(teamId) {
 		return this._getWithOptionalId("department", teamId);
 	},
+	getResource:function(filter, id) {
+		return this._getWithOptionalFilterId("resource", filter, id);
+	},
+	getResourceAvailability:function(startPeriod, length, filter, id) {
+		return this._getIntervalWithOptionalFilterId("resourceavailability", startPeriod, length, filter, id);
+	},
+	setResourceAvailability:function(data) {
+		return new PluppRequest("resourceavailability", data);
+	},
 	getTeams:function() {
 		return new PluppRequest("team");
 	},
@@ -80,8 +89,8 @@ Plupp = {
 	getTeamPlans:function(teamId, startPeriod, length) {
 		return new PluppRequest("teamplans/" + teamId + "/" + startPeriod + "/" + length);
 	},
-	getAvailable:function(startPeriod, length, teamId) {
-		return this._getIntervalWithOptionalId("available", startPeriod, length, teamId);
+	getAvailable:function(startPeriod, length, filter, id) {
+		return this._getIntervalWithOptionalFilterId("available", startPeriod, length, filter, id);
 	},
 	getAvailableSum:function(startPeriod, length) {
 		return new PluppRequest("availablesum/" + startPeriod + "/" + length);
@@ -111,12 +120,30 @@ Plupp = {
 		return new PluppRequest("quotasum/" + startPeriod + "/" + length);
 	},
 
-	// helper function to get a service with a given interval and optional id
-	_getIntervalWithOptionalId:function(service, startPeriod, length, id) {
-		if (typeof(id) === 'undefined') {
+	// helper function to get a service with a given interval and optional fiter and id
+	_getIntervalWithOptionalFilterId:function(service, startPeriod, length, filter, id) {
+		if (typeof(filter) === 'undefined') {
 			return new PluppRequest(service + "/" + startPeriod + "/" + length);
 		}
-		return new PluppRequest(service + "/" + startPeriod + "/" + length + "/" + id);
+
+		if (typeof(id) === 'undefined') {
+			return new PluppRequest(service + "/" + startPeriod + "/" + length + "/" + filter);
+		}
+
+		return new PluppRequest(service + "/" + startPeriod + "/" + length + "/" + filter + "/" + id);
+	},
+
+	// helper function to get a service with optional fiter and id
+	_getWithOptionalFilterId:function(service, filter, id) {
+		if (typeof(filter) === 'undefined') {
+			return new PluppRequest(service);
+		}
+
+		if (typeof(id) === 'undefined') {
+			return new PluppRequest(service + "/" + filter);
+		}
+
+		return new PluppRequest(service + "/" + filter + "/" + id);
 	},
 
 	// helper function to get a service with an optional id

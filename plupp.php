@@ -219,7 +219,7 @@ class Plupp {
 		return $this->_getQuery($sql);
 	}
 
-	private function _createResourceTable($name) {
+	private function _createResourceDataTable($name) {
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
 			   "    SELECT a.resourceId AS resourceId, a.teamId AS teamId, a.type AS type, a.departmentId AS departmentId FROM " . self::TABLE_RESOURCE_DATA . " a INNER JOIN ( " .
 			   "        SELECT resourceId, teamId, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " GROUP BY resourceId " .
@@ -244,7 +244,7 @@ class Plupp {
 	// helper to prepare temporary tables needed to run a resource availbility query
 	private function _getQueryAvailable($startPeriod, $length, $resourceTableName, $availableTableName, $sql) {
 		// prepare temporary tables
-		$arr = $this->_createResourceTable($resourceTableName);
+		$arr = $this->_createResourceDataTable($resourceTableName);
 		if ($arr[0] !== true) {
 			return $arr;
 		}
@@ -256,26 +256,80 @@ class Plupp {
 		return $this->_getQuery($sql);
 	}
 
-	public function getAvailable($startPeriod, $length, $teamId = null) {
+	public function getAvailable($startPeriod, $length, $filter, $id) {
 		$resource = 'resourceLatest';
 		$available = 'availableLatest';
 		$endPeriod = $this->_endPeriod($startPeriod, $length);
-		$sql = '';
 
-		if ($teamId === null) {
-			$sql = "SELECT r.teamId AS id, a.period AS period, SUM(a.value) AS value FROM $available a " .
+		$keyMap = array('department' => 'departmentId', 'team' => 'teamId');
+		$key = array_key_exists($filter, $keyMap) ? $keyMap[$filter] : null;
+
+		$sql = null;
+		if ($key === null) {
+			// get all resources on top level
+			$sql = "SELECT a.period AS period, SUM(a.value) AS value FROM $available a " .
 				   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 				   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
-				   "GROUP BY r.teamId, a.period ORDER BY r.teamId ASC, a.period ASC";
+				   "GROUP BY a.period " .
+				   "ORDER BY a.period ASC";			
 		}
 		else {
-			$sql = "SELECT r.teamId AS id, a.period AS period, SUM(a.value) AS value FROM $available a " .
+			if ($id === null) {
+				$sql = "SELECT r.$key AS id, a.period AS period, SUM(a.value) AS value FROM $available a " .
+					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+					   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+					   "GROUP BY r.$key, a.period " .
+					   "ORDER BY r.teamId ASC, a.period ASC";					
+			}
+			else {
+				$sql = "SELECT r.$key AS id, a.period AS period, SUM(a.value) AS value FROM $available a " .
+					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+					   "WHERE r.$key = $id AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+					   "GROUP BY r.$key, a.period " .
+					   "ORDER BY r.teamId ASC, a.period ASC";
+			}
+		}
+	
+		return $this->_getQueryAvailable($startPeriod, $length, $resource, $available, $sql);
+	}
+
+	public function getResourceAvailability($startPeriod, $length, $filter, $id) {
+		$resource = 'resourceLatest';
+		$available = 'availableLatest';
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
+
+		$keyMap = array('department' => 'departmentId', 'team' => 'teamId');
+		$key = array_key_exists($filter, $keyMap) ? $keyMap[$filter] : null;
+
+		$sql = null;
+		if ($key != null || $id != null) {
+			$sql = "SELECT r.resourceId AS id, a.period AS period, a.value AS value FROM $available a " .
 				   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
-				   "WHERE r.teamId = $teamId AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
-				   "GROUP BY r.teamId, a.period ORDER BY r.teamId ASC, a.period ASC";
+				   "WHERE r.$key = $id AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+				   "ORDER BY a.period ASC";
+		}
+		else {
+			// get all resources on top level
+			$sql = "SELECT r.resourceId AS id, a.period AS period, a.value AS value FROM $available a " .
+				   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+				   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+				   "ORDER BY a.period ASC";
+		}
+	
+		return $this->_getQueryAvailable($startPeriod, $length, $resource, $available, $sql);
+	}
+
+	public function setResourceAvailability($userId, $data, $resourceIdKey, $periodKey, $valueKey) {
+		$sql = "INSERT INTO " . self::TABLE_AVAILABLE . " (resourceId, period, value, userId) VALUES";
+		$i = 0;
+		foreach ($data as $k => $v) {
+			if ($i++ > 0) {
+				$sql .= ',';
+			}
+			$sql .= " ('$v[$resourceIdKey]', '$v[$periodKey]', '$v[$valueKey]', '$userId')";
 		}
 
-		return $this->_getQueryAvailable($startPeriod, $length, $resource, $available, $sql);
+		return $this->_setQuery($sql);
 	}
 
 	public function getAvailableSum($startPeriod, $length) {
@@ -305,9 +359,9 @@ class Plupp {
 		// @TODO add me
 	}
 
-	public function getResource($resourceId = null) {
+	public function getResource($filter, $id) {
 		$resource = 'resourceLatest';
-		$arr = $this->_createResourceTable($resource);
+		$arr = $this->_createResourceDataTable($resource);
 		if ($arr[0] !== true) {
 			return $arr;
 		}
@@ -318,11 +372,17 @@ class Plupp {
 			   "LEFT JOIN " . self::TABLE_TEAM . " t ON rd.teamId = t.id " .
 			   "LEFT JOIN " . self::TABLE_DEPARTMENT . " d ON rd.departmentId = d.id ";
 
-		if ($resourceId != null) {
-			$sql .= "WHERE r.id = $resourceId ";
+		$key = null;
+		switch ($filter) {
+			case 'resource' : $key = 'r.id'; break;
+			case 'department' : $key = 'd.id'; break;
+			case 'team' : $key = 't.id'; break;
+		}
+		if ($key != null) {
+			$sql .= "WHERE $key = $id ";
 		}
 
-		$sql .= "ORDER BY r.id ASC";
+		$sql .= "ORDER BY r.name ASC";
 
 		return $this->_getQuery($sql);
 	}

@@ -1,4 +1,5 @@
 // @TODO add last updated timestamp to each view
+// @TODO availableSum is not needed? use available with not filter/id instead?
 
 $.fn.center = function() {
 	this.css('position', 'fixed');
@@ -215,54 +216,55 @@ function PluppView(startPeriod, length) {
 
 	this.departments = function() {
 		self.title = 'Departments';
-		var teams = Plupp.getDepartment();
-		var avail = Plupp.getAvailable(self.startPeriod, self.length);
+		var depts = Plupp.getDepartment();
+		var avail = Plupp.getAvailable(self.startPeriod, self.length, 'department');
 		var quotas = Plupp.getQuotaSum(self.startPeriod, self.length);
 
 		$.when(
-			avail.run(), teams.run(), quotas.run()
+			avail.run(), depts.run(), quotas.run()
 		)
 		.then(function() {
 			if (self.mode() == 'table') {
 				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
-				t.addDataSection(teams.reply.data, avail.reply.data, 'constant');
+				t.addDataSection(depts.reply.data, avail.reply.data, 'constant');
 				t.addSum();
 				t.addDataRow('Quotas', quotas.reply.data, 'header');
-				t.addDelta(); // delta = quota - available
-				t.build(false, $('#' + self.tableContainerId), self.team);
+				t.addDelta(-2, -1); // delta =  available - quota
+				t.build(false, $('#' + self.tableContainerId), self.department);
 			}
 			else {
-				self._chartStackedArea('team', teams, avail, quotas, 'Quota');
+				self._chartStackedArea('department', depts, avail, quotas, 'Quota');
 			}
 		})
 		.fail(self.onError);
 	}
-/*
+
 	this.department = function(departmentId) {
 		self.title = 'Department: ';
-		var teams = Plupp.getDepartment(departmentId);
-		var avail = Plupp.getAvailable(self.startPeriod, self.length);
-		var quotas = Plupp.getQuotaSum(self.startPeriod, self.length);
+		var dept = Plupp.getDepartment(departmentId);
+		var resc = Plupp.getResource('department', departmentId);
+		var avail = Plupp.getResourceAvailability(self.startPeriod, self.length, 'department', departmentId);
 
 		$.when(
-			avail.run(), teams.run(), quotas.run()
+			avail.run(), dept.run(), resc.run()
 		)
 		.then(function() {
+			if (typeof(dept.reply.data) != 'undefined') {
+				self.title += dept.reply.data[0].name;
+			}
 			if (self.mode() == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
-				t.addDataSection(teams.reply.data, avail.reply.data, 'constant');
+				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'resourceavailability', 666);
+				t.addDataSection(resc.reply.data, avail.reply.data, 'editable');
 				t.addSum();
-				t.addDataRow('Quotas', quotas.reply.data, 'header');
-				t.addDelta(); // delta = quota - available
-				t.build(false, $('#' + self.tableContainerId), self.team);
+				t.build(true, $('#' + self.tableContainerId), self.resource);
 			}
 			else {
-				self._chartStackedArea('team', teams, avail, quotas, 'Quota');
+//				self._chartStackedArea('resource', teams, avail, quotas, 'Quota');
 			}
 		})
 		.fail(self.onError);
 	}
-*/
+
 	this.project = function(projectId) {
 		self.title = 'Project Resource Plan: ';
 		var teams = Plupp.getTeams();
@@ -298,7 +300,7 @@ function PluppView(startPeriod, length) {
 		var team = Plupp.getTeam(teamId);
 		var plans = Plupp.getTeamPlans(teamId, self.startPeriod, self.length);
 		var projects = Plupp.getProjects();
-		var avail = Plupp.getAvailable(self.startPeriod, self.length, teamId);
+		var avail = Plupp.getAvailable(self.startPeriod, self.length, 'team', teamId);
 
 		$.when(
 			team.run(), plans.run(), projects.run(), avail.run()

@@ -288,7 +288,11 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		else if (self.requestService == 'plan') {
 			request = Plupp.setPlan(self.requestId, requestData);
 		}
+		else if (self.requestService == 'resourceavailability') {
+			request = Plupp.setResourceAvailability(requestData);
+		}
 		else {
+			console.log("missing POST hook");
 			return;
 		}
 

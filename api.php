@@ -30,6 +30,8 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetAvailable::DESCRIPTION . '<br>';
 	echo GetAvailableSum::DESCRIPTION . '<br>';
 	echo GetResource::DESCRIPTION . '<br>';
+	echo SetResourceAvailability::DESCRIPTION . '<br>';
+	echo GetResourceAvailability::DESCRIPTION . '<br>';
 	echo PostLogin::DESCRIPTION . '<br>';
 	echo GetSession::DESCRIPTION . '<br>';
 	echo GetLogout::DESCRIPTION . '<br>';
@@ -50,6 +52,7 @@ if ($method == 'POST') {
 	switch ($cmd) {
 		case SetPlan::API: $obj = new SetPlan($request); break;
 		case SetQuota::API: $obj = new SetQuota($request); break;
+		case SetResourceAvailability::API: $obj = new SetResourceAvailability($request); break;
 		case PostLogin::API: $obj = new PostLogin($request); break;
 	}
 }
@@ -65,6 +68,7 @@ else if ($method == 'GET') {
 		case GetAvailableSum::API: $obj = new GetAvailableSum($request); break;
 		case GetProject::API: $obj = new GetProject($request); break;
 		case GetResource::API: $obj = new GetResource($request); break;
+		case GetResourceAvailability::API: $obj = new GetResourceAvailability($request); break;
 		case GetQuota::API: $obj = new GetQuota($request); break;
 		case GetQuotaSum::API: $obj = new GetQuotaSum($request); break;
 		case GetSession::API: $obj = new GetSession($request); break;
@@ -196,6 +200,44 @@ class ServiceEndPointIntervalId extends ServiceEndPoint {
 		$this->startPeriod = $this->request[1];
 		$this->length = $this->request[2];
 		$this->optionalId = $this->availableArgs > $this->requiredArgs ? $this->request[3] : null;
+	}
+}
+
+// Service end-point with 2 required arguments and 2 optional: /{startPeriod}/{length}/{filter}/{id}
+class ServiceEndPointIntervalFilterId extends ServiceEndPoint {
+	protected $startPeriod;
+	protected $length;
+	protected $optionalFilter;
+	protected $optionalId;
+
+	public function __construct($request) {
+		parent::__construct($request, 2);
+	}
+
+	protected function initArgs() {
+		$this->startPeriod = $this->request[1];
+		$this->length = $this->request[2];
+		$this->optionalFilter = $this->availableArgs >= 3 ? $this->request[3] : null;
+		$this->optionalId = $this->availableArgs >= 4 ? $this->request[4] : null;
+	}
+}
+
+// Service end-point with 2 optional arguments: /{filter}/{id}
+class ServiceEndPointFilterId extends ServiceEndPoint {
+	protected $optionalFilter;
+	protected $optionalId;
+
+	public function __construct($request) {
+		parent::__construct($request, 0);
+		$this->optionalFilter = null;
+		$this->optionalId = null;
+	}
+
+	protected function initArgs() {
+		if ($this->availableArgs >= 2) {
+			$this->optionalFilter = $this->request[1];
+			$this->optionalId = $this->request[2];
+		}
 	}
 }
 
@@ -341,19 +383,19 @@ class GetTeamPlans extends ServiceEndPoint {
 	}
 }
 
-class GetAvailable extends ServiceEndPointIntervalId {
-	const DESCRIPTION = 'GET /available/{startPeriod}/{length}/{teamId}, get aggregated resource available for a specific team within a given time intervall, i.e. how much of a team is available in total. ´teamId´ is optional, leaving this blank will return all teams.';
+class GetAvailable extends ServiceEndPointIntervalFilterId {
+	const DESCRIPTION = 'GET /available/{startPeriod}/{length}/{filter}/{id}, get total resources available within a given time intervall. {filter} and {id} are optional, leaving both blank will return sum on top level. Leaving just {id} blank will return sum aggregated based on filter: department or team.';
 	const API = 'available';
 
 	protected function service() {
 		$this->initArgs();
-		list($rc, $this->reply) = $this->plupp->getAvailable($this->startPeriod, $this->length, $this->optionalId);
+		list($rc, $this->reply) = $this->plupp->getAvailable($this->startPeriod, $this->length, $this->optionalFilter, $this->optionalId);
 		return $rc === true;
 	}
 }
 
 class GetAvailableSum extends ServiceEndPointIntervalId {
-	const DESCRIPTION = 'GET /availablesum/{startPeriod}/{length}, get total number of resources available within a given time intervall.';
+	const DESCRIPTION = 'GET /availablesum/{startPeriod}/{length}, get total number of resources available within a given time intervall - independent of team.';
 	const API = 'availablesum';
 
 	protected function service() {
@@ -364,7 +406,7 @@ class GetAvailableSum extends ServiceEndPointIntervalId {
 }
 
 class GetProject extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /project/{projectId}, get project information for a specific project. ´projectId´ is optional, leaving this blank will return all projects.';
+	const DESCRIPTION = 'GET /project/{projectId}, get project information for a specific project. {projectId} is optional, leaving this blank will return all projects.';
 	const API = 'project';
 
 	protected function service() {
@@ -374,13 +416,37 @@ class GetProject extends ServiceEndPoint {
 	}
 }
 
-class GetResource extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /resource/{resourceId}, get resource information for a specific resource; a resource being a human being doing great things. {resourceId} is optional, leaving this blank will return all resources.';
+class GetResource extends ServiceEndPointFilterId {
+	const DESCRIPTION = 'GET /resource/{filter}/{id}, get resource information for one or multiple resources; a resource being a human being doing great things. {filter} and {id} are optional, leaving those blank will return all resources. {filter} can be one of: resource, team or department.';
 	const API = 'resource';
 
 	protected function service() {
-		$resourceId = $this->availableArgs > $this->requiredArgs ? $this->request[1] : null;
-		list($rc, $this->reply) = $this->plupp->getResource($resourceId);
+		$this->initArgs();
+		list($rc, $this->reply) = $this->plupp->getResource($this->optionalFilter, $this->optionalId);
+		return $rc === true;
+	}
+}
+
+class GetResourceAvailability extends ServiceEndPointIntervalFilterId {
+	const DESCRIPTION = 'GET /resourceavailability/{startPeriod}/{length}/{filter}/{id}, get individual resources available within a given time intervall. {filter} and {id} are optional, leaving both blank will return all resources else all resources for that filter/id-pair will be returned.';
+	const API = 'resourceavailability';
+
+	protected function service() {
+		$this->initArgs();
+		list($rc, $this->reply) = $this->plupp->getResourceAvailability($this->startPeriod, $this->length, $this->optionalFilter, $this->optionalId);
+		return $rc === true;
+	}
+}
+
+class SetResourceAvailability extends ServiceEndPoint {
+	const DESCRIPTION = 'POST /resourceavailability, set new resource availability.';
+	const API = 'resourceavailability';
+
+	protected $anonymous = false;
+
+	protected function service() {
+		$data = $_POST['data'];
+		list($rc, $this->reply) = $this->plupp->setResourceAvailability($this->session->getUserId(), $data, 'id', 'period', 'value');
 		return $rc === true;
 	}
 }
