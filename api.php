@@ -28,7 +28,6 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetTeamPlans::DESCRIPTION . '<br>';
 	echo GetTeamsPlan::DESCRIPTION . '<br>';
 	echo GetAvailable::DESCRIPTION . '<br>';
-	echo GetAvailableSum::DESCRIPTION . '<br>';
 	echo GetResource::DESCRIPTION . '<br>';
 	echo SetResourceAvailability::DESCRIPTION . '<br>';
 	echo GetResourceAvailability::DESCRIPTION . '<br>';
@@ -65,7 +64,6 @@ else if ($method == 'GET') {
 		case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
 		case GetTeamsPlan::API: $obj = new GetTeamsPlan($request); break;
 		case GetAvailable::API: $obj = new GetAvailable($request); break;
-		case GetAvailableSum::API: $obj = new GetAvailableSum($request); break;
 		case GetProject::API: $obj = new GetProject($request); break;
 		case GetResource::API: $obj = new GetResource($request); break;
 		case GetResourceAvailability::API: $obj = new GetResourceAvailability($request); break;
@@ -390,17 +388,6 @@ class GetAvailable extends ServiceEndPointIntervalFilterId {
 	protected function service() {
 		$this->initArgs();
 		list($rc, $this->reply) = $this->plupp->getAvailable($this->startPeriod, $this->length, $this->optionalFilter, $this->optionalId);
-		return $rc === true;
-	}
-}
-
-class GetAvailableSum extends ServiceEndPointIntervalId {
-	const DESCRIPTION = 'GET /availablesum/{startPeriod}/{length}, get total number of resources available within a given time intervall - independent of team.';
-	const API = 'availablesum';
-
-	protected function service() {
-		$this->initArgs();
-		list($rc, $this->reply) = $this->plupp->getAvailableSum($this->startPeriod, $this->length);
 		return $rc === true;
 	}
 }

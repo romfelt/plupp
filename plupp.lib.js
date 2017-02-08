@@ -92,9 +92,6 @@ Plupp = {
 	getAvailable:function(startPeriod, length, filter, id) {
 		return this._getIntervalWithOptionalFilterId("available", startPeriod, length, filter, id);
 	},
-	getAvailableSum:function(startPeriod, length) {
-		return new PluppRequest("availablesum/" + startPeriod + "/" + length);
-	},
 	setPlan:function(projectId, data) {
 		return new PluppRequest("plan/" + projectId, data);
 	},

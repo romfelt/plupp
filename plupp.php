@@ -332,18 +332,6 @@ class Plupp {
 		return $this->_setQuery($sql);
 	}
 
-	public function getAvailableSum($startPeriod, $length) {
-		$resource = 'resourceLatest';
-		$available = 'availableLatest';
-		$endPeriod = $this->_endPeriod($startPeriod, $length);
-		$sql = "SELECT a.period AS period, SUM(a.value) AS value FROM $available a " .
-			   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
-			   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
-			   "GROUP BY a.period ORDER BY a.period ASC";
-
-		return $this->_getQueryAvailable($startPeriod, $length, $resource, $available, $sql);
-	}
-
 	public function addProject() {
 		// @TODO add me
 	}
