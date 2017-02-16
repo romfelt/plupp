@@ -18,6 +18,9 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo "<h1>PLUPP API description</h1>";
 	echo SetPlan::DESCRIPTION . '<br>';
 	echo GetPlan::DESCRIPTION . '<br>';
+	echo SetAllocation::DESCRIPTION . '<br>';
+	echo GetAllocation::DESCRIPTION . '<br>';
+	echo GetResourceAllocation::DESCRIPTION . '<br>';
 	echo GetPlanSum::DESCRIPTION . '<br>';
 	echo SetQuota::DESCRIPTION . '<br>';
 	echo GetQuota::DESCRIPTION . '<br>';
@@ -50,6 +53,7 @@ $obj = null;
 if ($method == 'POST') {
 	switch ($cmd) {
 		case SetPlan::API: $obj = new SetPlan($request); break;
+		case SetAllocation::API: $obj = new SetAllocation($request); break;
 		case SetQuota::API: $obj = new SetQuota($request); break;
 		case SetResourceAvailability::API: $obj = new SetResourceAvailability($request); break;
 		case PostLogin::API: $obj = new PostLogin($request); break;
@@ -58,6 +62,8 @@ if ($method == 'POST') {
 else if ($method == 'GET') {
 	switch ($cmd) {
 		case GetPlan::API: $obj = new GetPlan($request); break;
+		case GetAllocation::API: $obj = new GetAllocation($request); break;
+		case GetResourceAllocation::API: $obj = new GetResourceAllocation($request); break;
 		case GetPlanSum::API: $obj = new GetPlanSum($request); break;
 		case GetDepartment::API: $obj = new GetDepartment($request); break;
 		case GetTeam::API: $obj = new GetTeam($request); break;
@@ -201,12 +207,13 @@ class ServiceEndPointIntervalId extends ServiceEndPoint {
 	}
 }
 
-// Service end-point with 2 required arguments and 2 optional: /{startPeriod}/{length}/{filter}/{id}
+// Service end-point with 2 required arguments and 3 optional: /{startPeriod}/{length}/{filter}/{id}/{group}
 class ServiceEndPointIntervalFilterId extends ServiceEndPoint {
 	protected $startPeriod;
 	protected $length;
 	protected $optionalFilter;
 	protected $optionalId;
+	protected $optionalGroup;
 
 	public function __construct($request) {
 		parent::__construct($request, 2);
@@ -217,6 +224,7 @@ class ServiceEndPointIntervalFilterId extends ServiceEndPoint {
 		$this->length = $this->request[2];
 		$this->optionalFilter = $this->availableArgs >= 3 ? $this->request[3] : null;
 		$this->optionalId = $this->availableArgs >= 4 ? $this->request[4] : null;
+		$this->optionalGroup = $this->availableArgs >= 5 ? $this->request[5] : null;
 	}
 }
 
@@ -269,6 +277,58 @@ class GetPlan extends ServiceEndPointIntervalId {
 		return $rc === true;
 	}
 }
+
+class GetAllocation extends ServiceEndPointIntervalFilterId {
+	const DESCRIPTION = 'GET /allocation/{startPeriod}/{length}/{filter}/{id}/{group}, get total resource allocation plan within a given time intervall. {filter}, {id} and {group} are optional, leaving those blank will return sum on top level. Leaving just {id} and {group} blank will return sum aggregated based on filter: project, team or resource. {group} specifies how results for a certain filter/id pair should be returned.';
+	const API = 'allocation';
+
+	protected function service() {
+		$this->initArgs();
+		list($rc, $this->reply) = $this->plupp->getAllocation($this->startPeriod, $this->length, $this->optionalFilter, $this->optionalId, $this->optionalGroup);
+		return $rc === true;
+	}
+}
+
+class GetResourceAllocation extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /resourceallocation/{startPeriod}/{length}/{projectId}/{teamId}, get resources from a specific team allocated to a certain project within a given time intervall.';
+	const API = 'resourceallocation';
+
+
+	public function __construct($request) {
+		parent::__construct($request, 4);
+	}
+
+	protected function service() {
+		$startPeriod = $this->request[1];
+		$length = $this->request[2];
+		$projectId = $this->request[3];
+		$teamId = $this->request[4];
+
+		list($rc, $this->reply) = $this->plupp->getResourceAllocation($startPeriod, $length, $projectId, $teamId);
+		return $rc === true;
+	}
+}
+
+
+// JSON data in body
+class SetAllocation extends ServiceEndPoint {
+	const DESCRIPTION = 'POST /allocation/{projectId}, set new project resource allocation plan.';
+	const API = 'allocation';
+
+	protected $anonymous = false;
+
+	public function __construct($request) {
+		parent::__construct($request, 1);
+	}
+
+	protected function service() {
+		$projectId = $this->request[1];
+		$data = $_POST['data'];
+		list($rc, $this->reply) = $this->plupp->setAllocation($this->session->getUserId(), $projectId, $data, 'id', 'period', 'value');
+		return $rc === true;
+	}
+}
+
 
 class GetPlanSum extends ServiceEndPoint {
 	const DESCRIPTION = 'GET /plansum/{startPeriod}/{length}, get the total sum of requested resources for all projects within a given time intervall.';

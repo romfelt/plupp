@@ -18,6 +18,7 @@ class Plupp {
 	const TABLE_RESOURCE_DATA = 'resource_data';
 	const TABLE_AVAILABLE = 'available';
 	const TABLE_DEPARTMENT = 'department';
+	const TABLE_ALLOCATION = 'allocation';
 
 	private $db = null;
 	private $error = null; 
@@ -241,6 +242,18 @@ class Plupp {
 		return $this->_setQuery($sql);
 	}
 
+	private function _createAllocationTable($name, $startPeriod, $length) {
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
+		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
+			   "    SELECT a.projectId AS projectId, a.resourceId AS resourceId, a.period AS period, a.value AS value FROM " . self::TABLE_ALLOCATION . " a INNER JOIN ( " .
+			   "        SELECT projectId, resourceId, value, period, MAX(timestamp) AS latest FROM " . self::TABLE_ALLOCATION . " GROUP BY projectId, resourceId, period " .
+			   "    ) b ON a.projectId = b.projectId AND a.resourceId = b.resourceId AND a.period = b.period AND a.timestamp = b.latest " .
+			   "    WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+			   ")";
+
+		return $this->_setQuery($sql);
+	}
+
 	// helper to prepare temporary tables needed to run a resource availbility query
 	private function _getQueryAvailable($startPeriod, $length, $resourceTableName, $availableTableName, $sql) {
 		// prepare temporary tables
@@ -268,7 +281,6 @@ class Plupp {
 		if ($key === null) {
 			// get all resources on top level
 			$sql = "SELECT a.period AS period, SUM(a.value) AS value FROM $available a " .
-				   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 				   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 				   "GROUP BY a.period " .
 				   "ORDER BY a.period ASC";			
@@ -330,6 +342,114 @@ class Plupp {
 		}
 
 		return $this->_setQuery($sql);
+	}
+
+	public function setAllocation($userId, $projectId, $data, $resourceIdKey, $periodKey, $valueKey) {
+		$sql = "INSERT INTO " . self::TABLE_ALLOCATION . " (projectId, resourceId, period, value, userId) VALUES";
+		$i = 0;
+		foreach ($data as $k => $v) {
+			if ($i++ > 0) {
+				$sql .= ',';
+			}
+			$sql .= " ('$projectId', '$v[$resourceIdKey]', '$v[$periodKey]', '$v[$valueKey]', '$userId')";
+		}
+
+		return $this->_setQuery($sql);
+	}
+
+/*
+
+ *: total allocation over time
+ project: list of projects and allocations over time
+ project+id: list of teams for a specific project over time
+ team: list of teams and allocations over time
+ team+id: list of projects a team is allocated to
+ resource: list of resources allocation over time
+ resource+id: list of projects a resource is allocated to
+
+ project+id+teamId = return resources allocation
+
+ */
+
+	public function getAllocation($startPeriod, $length, $filter, $id, $group) {
+		$resource = 'resourceLatest';
+		$allocation = 'allocationLatest';
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
+
+		$keyMap = array('project' => 'a.projectId', 'department' => 'r.departmentId', 'team' => 'r.teamId', 'resource' => 'r.resourceId');
+		$selectKey = array_key_exists($filter, $keyMap) ? $keyMap[$filter] : null;
+		$groupKey = array_key_exists($group, $keyMap) ? $keyMap[$group] : null;
+
+		// prepare temporary table
+		$arr = $this->_createAllocationTable($allocation, $startPeriod, $length);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
+
+		$sql = null;
+		if ($selectKey === null) {
+			// get all allocations on top level
+			$sql = "SELECT a.period AS period, SUM(a.value) AS value FROM $allocation a " .
+				   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+				   "GROUP BY a.period " .
+				   "ORDER BY a.period ASC";			
+		}
+		else {
+			// prepare temporary table
+			$arr = $this->_createResourceDataTable($resource);
+			if ($arr[0] !== true) {
+				return $arr;
+			}
+
+			if ($id === null) {
+				$sql = "SELECT $selectKey AS id, a.period AS period, SUM(a.value) AS value FROM $allocation a " .
+					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+					   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+					   "GROUP BY $selectKey, a.period " .
+					   "ORDER BY $selectKey ASC, a.period ASC";					
+			}
+			else {
+				if ($group === null) {
+					$sql = "SELECT $selectKey AS id, a.period AS period, SUM(a.value) AS value FROM $allocation a " .
+						   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+						   "WHERE $selectKey = '$id' AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+						   "GROUP BY $selectKey, a.period " .
+						   "ORDER BY $selectKey ASC, a.period ASC";					
+				}
+				else {
+					$sql = "SELECT $groupKey AS id, a.period AS period, SUM(a.value) AS value FROM $allocation a " .
+						   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+						   "WHERE $selectKey = '$id' AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+						   "GROUP BY $groupKey, a.period " .
+						   "ORDER BY $groupKey ASC, a.period ASC";					
+				}
+			}
+		}
+
+		return $this->_getQuery($sql);
+	}
+
+	public function getResourceAllocation($startPeriod, $length, $projectId, $teamId) {
+		$resource = 'resourceLatest';
+		$allocation = 'allocationLatest';
+		$endPeriod = $this->_endPeriod($startPeriod, $length);
+
+		// prepare temporary tables
+		$arr = $this->_createAllocationTable($allocation, $startPeriod, $length);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
+		$arr = $this->_createResourceDataTable($resource);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
+
+		$sql = "SELECT r.resourceId AS id, a.period AS period, a.value AS value FROM $allocation a " .
+			   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+			   "WHERE a.projectId = '$projectId' AND r.teamId = '$teamId' AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+			   "ORDER BY r.resourceId ASC, a.period ASC";					
+
+		return $this->_getQuery($sql);
 	}
 
 	public function addProject() {
