@@ -74,6 +74,15 @@ Plupp = {
 	setResourceAvailability:function(data) {
 		return new PluppRequest("resourceavailability", data);
 	},
+	getAllocation:function(startPeriod, length, filter, id, group) {
+		return this._getWithOptionalArgs("allocation", startPeriod, length, filter, id, group);
+	},
+	getResourceAllocation:function(startPeriod, length, projectId, teamId) {
+		return this._getWithOptionalArgs("resourceallocation", startPeriod, length, projectId, teamId);
+	},
+	setAllocation:function(data) {
+		return new PluppRequest("allocation", data);
+	},
 	getTeams:function() {
 		return new PluppRequest("team");
 	},
@@ -115,6 +124,13 @@ Plupp = {
 	},
 	getQuotaSum:function(startPeriod, length) {
 		return new PluppRequest("quotasum/" + startPeriod + "/" + length);
+	},
+
+	// Helper function to get a service with any number of arguments. Note that the service
+	// must be first argument.
+	_getWithOptionalArgs:function() {
+		var args = Array.prototype.slice.call(arguments); // using the arguments object
+		return new PluppRequest(args.join('/'));
 	},
 
 	// helper function to get a service with a given interval and optional fiter and id
