@@ -1,8 +1,11 @@
 // TODO:
+// - Quota => Budget (resource)
+// - Team => Discipline
 // - add notification that user has to login
 // - allocation, remove user of plans API... then remove API?
 // - project priority, sort on that
 // - call-stack, being able to click back to previous view(s)
+// - clean up plupp.lib.js to user same request helper
 // - add last X updated timestamp/user to each view
 // - allow browse history byt setting a timestamp
 // - add tag support: i.e. Evander TG2 @ 2017-01-23 12:02:11
@@ -96,6 +99,35 @@ function doLogout() {
 	});
 }
 
+//
+// Class for basic Stack implementation
+//
+function Stack() {
+	this.stack = new Array();
+
+	this.pop = function() {
+		return this.stack.pop();
+	}
+
+	this.push = function(item) {
+		this.stack.push(item);
+	}
+
+	this.peek = function(item) {
+		if (this.stack.length > 0) {
+			return this.stack[this.stack.length - 1];
+		}
+		return undefined;
+	}
+
+	this.clear = function() {
+		this.stack.length = 0;
+	}
+
+	this.length = function() {
+		return this.stack.length;
+	}
+}
 
 //
 // Class for handling Plupp Views at UI application
@@ -115,6 +147,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 	this.mode = 'chart'; // possible view modes are 'table' or 'chart'
 	this.view = null; // current view
 	this.viewArg = null; // current view argument
+	this.stack = null; // view stack
 
 	// @param mode The new mode to set, if left undefined it is toggled
 	this.setViewMode = function(mode) {
