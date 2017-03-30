@@ -92,6 +92,12 @@ h1 {
 .cell {
 }
 
+.cell-title-header {
+	font-weight: bold;
+	transform: rotate(90deg);
+	transform-origin: left top 0;
+}
+
 .cell-header {
 	font-weight: bold;
 }

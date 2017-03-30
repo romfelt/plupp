@@ -1,18 +1,20 @@
 // @TODO remove args, reuse from parent reference
 
 //
-// Class for building dynamic and interactive tables
+// Class for building dynamic and interactive tables. 
 //
-function PluppTable(tableTitle, startPeriod, length, requestService, requestId) {
+// NOTE that a header must be added before other data is added.
+//
+function PluppTable(tableTitle, requestService, requestId) {
 	var self = this; // keep reference to this object to be used independent of call context
 	this.tableTitle = tableTitle;
 	this.tableId = 'pluppTable';
-	this.startPeriod = startPeriod;
-	this.length = length;
+	this.length = 0; // number of data columns, set by header functions
 	this.requestService = requestService;
 	this.requestId = requestId;
 	this.table = [];
 	this.zeroes = null;
+	this.lookup = {}; // column lookup table to avoid searching when populating cells, returns delta index
 
 	// returns array of length with pre-defined values
 	this.getArray = function(length, startValue, increment) {
@@ -24,23 +26,42 @@ function PluppTable(tableTitle, startPeriod, length, requestService, requestId) 
 		return data;
 	}
 
-	// create an array of zeroes to be reused to save some time
-	self.zeroes = self.getArray(length, 0, 0);
-
-	// add monthly date row header
-	this.addDateHeader = function() {
-		var m = moment(self.startPeriod);
-		var months = [];
+	// add monthly date header row
+	this.addDateHeader = function(startPeriod, length) {
+		self.length = length;
+		self.lookup = {}; // reset column lookup table
+		var m = moment(startPeriod);
+		var d = [];
 		for (var i = 0; i < self.length; i++) {
-			months.push([m.format("MMM YYYY"), m.format("YYYY-MM-DD")]); // store both user format as well as API format (2016-01-01)
-			m.add(1, 'month');
+			d.push([m.format("MMM YYYY"), m.format("YYYY-MM-DD")]); // store both user format as well as internal API format (2016-01-01)
+			self.lookup[m.format("YYYY-MM-DD")] = i; // associate date with index
+			m.add(1, 'month'); // increase one month
 		}
-		var obj = {'type': 'time', 'title': 'Month', 'data': months};
+		var obj = {'type': 'time', 'title': 'Month', 'data': d};
 		self.table.push(obj);
+
+		// create an array of zeroes to be reused to save some time
+		self.zeroes = self.getArray(self.length, 0, 0);
 	}
 
-	this.addDataSection = function(titles, values, type, parentId) {
-		var lookup = {}; // lookup table to keep track of objects based on id, no need to search
+	// add title/id header row
+	this.addNameHeader = function(title, data) {
+		self.length = data.length;
+		self.lookup = {}; // reset column lookup table
+		var d = [];
+		$.each(data, function(i, v) {
+			d.push([v.name, v.id]); // store name and id
+			self.lookup[v.id] = i; // associate name with index
+		});
+		var obj = {'type': 'header', 'title': title, 'data': d};
+		self.table.push(obj);
+
+		// create an array of zeroes to be reused to save some time
+		self.zeroes = self.getArray(self.length, 0, 0);
+	}
+
+	this.addDataSection = function(titles, values, columnField, type, parentId) {
+		var lookup = {}; // row lookup table to keep track of objects based on id, no need to search
 
 		// @TODO move this full-array-expansion to PluppRequest on success so that API hooks can be used by other clients as well, such as graphs
 		// create default value zero to all table cells
@@ -54,19 +75,23 @@ function PluppTable(tableTitle, startPeriod, length, requestService, requestId) 
 		// add real cell values
 		$.each(values, function(i, v) {
 			if (typeof lookup[v.id] !== 'undefined') {
-				var m = monthsBetween(self.startPeriod, v.period);
-				var f = parseFloat(v.value);
-				lookup[v.id].data[m] = f;
+				var x = self.lookup[v[columnField]];
+				if (typeof x !== 'undefined') {
+					var f = parseFloat(v.value);
+					lookup[v.id].data[x] = f;
+				}
 			}
 		});
 	}
 
-	this.addDataRow = function(title, values, type) {
+	this.addDataRow = function(title, values, columnField, type) {
 		var data = self.zeroes.slice(); // make copy of array to create new object
 		$.each(values, function(i, v) {
-			var m = monthsBetween(self.startPeriod, v.period);
-			var f = parseFloat(v.value);
-			data[m] = f;
+			var x = self.lookup[v[columnField]];
+			if (typeof x !== 'undefined') {
+				var f = parseFloat(v.value);
+				data[x] = f;
+			}
 		});
 		self.table.push({'type': type, 'title': title, 'data': data});
 	}
@@ -80,7 +105,7 @@ function PluppTable(tableTitle, startPeriod, length, requestService, requestId) 
 	this.addDelta = function(rowA, rowB) {
 		var a = isNaN(rowA) ? -1 : rowA;
 		var b = isNaN(rowB) ? -2 : rowB;
-		self.table.push({'type': 'delta', 'title': 'Delta', 'columns': length, 'rowA': a, 'rowB': b});
+		self.table.push({'type': 'delta', 'title': 'Delta', 'columns': self.length, 'rowA': a, 'rowB': b});
 	}
 
 	// set or get cell value
@@ -184,9 +209,17 @@ function PluppTable(tableTitle, startPeriod, length, requestService, requestId) 
 			if (obj.type == 'time') {
 				$.each(obj.data, function(i, v) {
 					tr.append($('<td/>')
-						.addClass('cell-header')
+						.addClass('cell-title-header')
 						.text(v[0])
 						.data('period', v[1])); // store timestamp as data in cell to be used when posting
+				});
+			}
+			else if (obj.type == 'header') {
+				$.each(obj.data, function(i, v) {
+					tr.append($('<td/>')
+						.addClass('cell-title-header')
+						.text(v[0])
+						.data('projectId', v[1])); // TODO make this configurable and even more generic combining it with type=='time'
 				});
 			}
 			else if (obj.type == 'editable') {
