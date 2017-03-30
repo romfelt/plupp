@@ -147,7 +147,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 	this.mode = 'chart'; // possible view modes are 'table' or 'chart'
 	this.view = null; // current view
 	this.viewArg = null; // current view argument
-	this.stack = null; // view stack
+	this.stack = new Stack(); // view stack
 
 	// @param mode The new mode to set, if left undefined it is toggled
 	this.setViewMode = function(mode) {
@@ -172,7 +172,6 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		// call call-back
 		if (typeof(self.view) == 'function') {
 			self.view.apply(this, self.viewArg)
-
 		}
 		else {
 			console.log("ignoring call to unknown view function, calling default");
@@ -182,9 +181,45 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		return self.mode;
 	}
 
+	// push view to navigation stack
+	this.pushView = function(title, view, args) {
+		// TODO
+	}
+
 	this.onError = function(e) {
 		console.log("something went wrong: " + e);
 	}
+
+	this.allocation = function() {
+		self.view = self.allocation;
+		self.title = 'Project Allocation';
+		var projects = Plupp.getProjects();
+		var quotas = Plupp.getQuota(self.startPeriod, 1, 'project');
+		var alloc = Plupp.getAllocation(self.startPeriod, 1, 'raw');
+		var resc = Plupp.getResource();
+
+		$.when(
+			quotas.run(), projects.run(), alloc.run(), resc.run()
+		)
+		.then(function() {
+			if (self.mode == 'table') {
+				var t = new PluppTable(self.title, self.startPeriod, self.length, 'quotas');
+				t.addDateHeader();
+				t.addDataSection(projects.reply.data, quotas.reply.data, 'editable');
+				t.addSum();
+				t.addDataRow('Available', avail.reply.data, 'header');
+				t.addDelta(); // delta = available - sum
+				t.addDataRow('Requested', alloc.reply.data, 'header');
+				t.addDelta(-4, -1); // delta = sum - requested
+				t.build(true, $('#' + self.tableContainerId), self.project);
+			}
+			else {
+				// TODO self._chartStackedArea('project', projects, quotas, alloc, 'Requested');
+			}
+		})
+		.fail(self.onError);
+	}
+
 
 	this.quotas = function() {
 		self.view = self.quotas;
@@ -199,7 +234,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'quotas');
+				var t = new PluppTable(self.title, self.startPeriod, self.length, 'quotas');
+				t.addDateHeader();
 				t.addDataSection(projects.reply.data, quotas.reply.data, 'editable');
 				t.addSum();
 				t.addDataRow('Available', avail.reply.data, 'header');
@@ -227,7 +263,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
+				var t = new PluppTable(self.title, self.startPeriod, self.length);
+				t.addDateHeader();
 				t.addDataSection(projects.reply.data, alloc.reply.data, 'constant');
 				t.addSum();
 				t.addDataRow('Quotas', quotas.reply.data, 'header');
@@ -260,7 +297,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 			}
 
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'plan', projectId);
+				var t = new PluppTable(self.title, self.startPeriod, self.length, 'plan', projectId);
+				t.addDateHeader();
 				t.addDataSection(teams.reply.data, alloc.reply.data, 'constant', projectId);
 				t.addSum();
 				t.addDataRow('Quota', quota.reply.data, 'header');
@@ -294,7 +332,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 			}
 
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'allocation', projectId);
+				var t = new PluppTable(self.title, self.startPeriod, self.length, 'allocation', projectId);
+				t.addDateHeader();
 				t.addDataSection(resc.reply.data, alloc.reply.data, 'editable', projectId);
 				t.addSum();
 //				t.addDataRow('Available', avail.reply.data, 'header');
@@ -320,7 +359,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
+				var t = new PluppTable(self.title, self.startPeriod, self.length);
+				t.addDateHeader();
 				t.addDataSection(teams.reply.data, alloc.reply.data, 'constant');
 				t.addSum();
 				t.addDataRow('Available', avail.reply.data, 'header');
@@ -346,7 +386,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
+				var t = new PluppTable(self.title, self.startPeriod, self.length);
+				t.addDateHeader();
 				t.addDataSection(teams.reply.data, avail.reply.data, 'constant');
 				t.addSum();
 				t.addDataRow('Quotas', quotas.reply.data, 'header');
@@ -372,7 +413,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
+				var t = new PluppTable(self.title, self.startPeriod, self.length);
+				t.addDateHeader();
 				t.addDataSection(depts.reply.data, avail.reply.data, 'constant');
 				t.addSum();
 				t.addDataRow('Quotas', quotas.reply.data, 'header');
@@ -403,7 +445,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 				self.title += dept.reply.data[0].name;
 			}
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'resourceavailability', 666);
+				var t = new PluppTable(self.title, self.startPeriod, self.length, 'resourceavailability', 666);
+				t.addDateHeader();
 				t.addDataSection(resc.reply.data, avail.reply.data, 'editable');
 				t.addSum();
 				t.build(true, $('#' + self.tableContainerId), self.resource);
@@ -435,7 +478,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 			}
 
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length);
+				var t = new PluppTable(self.title, self.startPeriod, self.length);
+				t.addDateHeader();
 				t.addDataSection(projects.reply.data, alloc.reply.data, 'constant');
 				t.addSum();
 				t.addDataRow('Available', avail.reply.data, 'header');
@@ -468,7 +512,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 				self.title += resc.reply.data[0].name;
 			}
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, 'month', self.startPeriod, self.length, 'resourceavailability', 666);
+				var t = new PluppTable(self.title, self.startPeriod, self.length, 'resourceavailability', 666);
+				t.addDateHeader();
 				t.addDataSection(projects.reply.data, alloc.reply.data, 'constant');
 				t.addSum();
 				t.addDataRow('Available', avail.reply.data, 'header');

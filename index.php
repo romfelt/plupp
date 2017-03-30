@@ -54,7 +54,7 @@
 						<!-- @TODO make logo configurable -->
 						<!--span id="logo"><img src="flir-logo-transparent.png"></span-->
 						<a class="plupp-logo" href="">PLUPP</a>
-						<a onClick="">Allocation</a>
+						<a onClick="view.allocation();">Allocation</a>
 						<a onClick="view.quotas();">Quotas</a>
 						<a onClick="view.plans();">Project Plans</a>
 						<a onClick="view.teams();">Teams</a>

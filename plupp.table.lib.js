@@ -3,7 +3,7 @@
 //
 // Class for building dynamic and interactive tables
 //
-function PluppTable(tableTitle, periodType, startPeriod, length, requestService, requestId) {
+function PluppTable(tableTitle, startPeriod, length, requestService, requestId) {
 	var self = this; // keep reference to this object to be used independent of call context
 	this.tableTitle = tableTitle;
 	this.tableId = 'pluppTable';
@@ -11,7 +11,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 	this.length = length;
 	this.requestService = requestService;
 	this.requestId = requestId;
-	this.table = null;
+	this.table = [];
 	this.zeroes = null;
 
 	// returns array of length with pre-defined values
@@ -24,21 +24,19 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		return data;
 	}
 
-	// create an array of zeroes to be reused
+	// create an array of zeroes to be reused to save some time
 	self.zeroes = self.getArray(length, 0, 0);
 
-	// initilize table with a date row on top
-	if (periodType == 'month') {
+	// add monthly date row header
+	this.addDateHeader = function() {
 		var m = moment(self.startPeriod);
 		var months = [];
-		for (var i = 0; i < length; i++) {
+		for (var i = 0; i < self.length; i++) {
 			months.push([m.format("MMM YYYY"), m.format("YYYY-MM-DD")]); // store both user format as well as API format (2016-01-01)
 			m.add(1, 'month');
 		}
-		self.table = [{'type': 'time', 'title': 'Month', 'data': months}];
-	}
-	else {
-		console.log("Not yet supported!");
+		var obj = {'type': 'time', 'title': 'Month', 'data': months};
+		self.table.push(obj);
 	}
 
 	this.addDataSection = function(titles, values, type, parentId) {
