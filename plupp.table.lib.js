@@ -41,14 +41,14 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		console.log("Not yet supported!");
 	}
 
-	this.addDataSection = function(titles, values, type) {
+	this.addDataSection = function(titles, values, type, parentId) {
 		var lookup = {}; // lookup table to keep track of objects based on id, no need to search
 
 		// @TODO move this full-array-expansion to PluppRequest on success so that API hooks can be used by other clients as well, such as graphs
 		// create default value zero to all table cells
 		$.each(titles, function(i, v) {
 			var data = self.zeroes.slice(); // make copy of array to create new object
-			var obj = {'type': type, 'id': v.id, 'title': v.name, 'data': data};
+			var obj = {'type': type, 'id': v.id, 'pid': parentId, 'title': v.name, 'data': data};
 			self.table.push(obj);
 			lookup[v.id] = obj; // store reference to object, instead of searching for objects
 		});
@@ -160,6 +160,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		});
 	}
 
+	// @TODO remove editable, if there are cells of type editable make it editable... doh!
 	this.build = function(editable, container, callback) {
 		var table = $('<table id="' + self.tableId + '"/>').addClass('edit-table');
 
@@ -169,7 +170,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 				.addClass('cell-header')
 				.text(obj.title);
 
-			// if this is a row with an ´id´ make first column cell clickable
+			// if this is a row with an ´id´ make first column cell clickable to allow navigation
 			if (typeof(obj.id) !== 'undefined') {
 				td.addClass('cell-clickable');
 				td.click(function() {
@@ -177,7 +178,7 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 						console.log("warning: install click callback");
 						return;
 					}
-					callback(obj.id);
+					callback(obj.id, obj.pid);
 				});
 			}
 
@@ -282,18 +283,22 @@ function PluppTable(tableTitle, periodType, startPeriod, length, requestService,
 		}
 
 		var request;
-		if (self.requestService == 'quotas') {
-			request = Plupp.setQuotas(requestData);
-		}
-		else if (self.requestService == 'plan') {
-			request = Plupp.setPlan(self.requestId, requestData);
-		}
-		else if (self.requestService == 'resourceavailability') {
-			request = Plupp.setResourceAvailability(requestData);
-		}
-		else {
-			console.log("missing POST hook");
-			return;
+		switch (self.requestService) {
+			case 'quotas' : 
+				request = Plupp.setQuota(requestData);
+				break;
+			case 'plan' : 
+				request = Plupp.setPlan(self.requestId, requestData);
+				break;
+			case 'resourceavailability' : 
+				request = Plupp.setResourceAvailability(requestData);
+				break;
+			case 'allocation' : 
+				request = Plupp.setAllocation(self.requestId, requestData);
+				break;
+			default: 
+				console.log("missing post-hook for service: " + self.requestService);
+				return;
 		}
 
 		$.when(

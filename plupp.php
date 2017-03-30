@@ -153,31 +153,37 @@ class Plupp {
 		return $this->_setQuery($sql);
 	}
 
-	public function getQuota($startPeriod, $length, $projectId = null) {
-		$sql = '';
+	public function getQuota($startPeriod, $length, $filter, $id) {
 		$endPeriod = $this->_endPeriod($startPeriod, $length);
-		if ($projectId === null){
-			$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
+
+		$keyMap = array('project' => 'projectId');
+		$key = array_key_exists($filter, $keyMap) ? $keyMap[$filter] : null;
+
+		$sql = null;
+		if ($key === null) {
+			// get sum of quota on top level
+			$sql = "SELECT p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
 				   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
 				   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-				   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";		
+				   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.period ORDER BY p.period ASC";
 		}
 		else {
-			$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
-				   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . 
-				   "    WHERE projectId = '$projectId' GROUP BY projectId, period" .
-				   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-				   "WHERE p.projectId = '$projectId' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.period ASC";
+			if ($id === null) {
+				// get sum of quota for all projects
+				$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
+					   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
+					   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
+					   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";	
+			}
+			else {
+				// get sum of quota for a specific projects
+				$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
+					   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . 
+					   "    WHERE $key = '$id' GROUP BY projectId, period" .
+					   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
+					   "WHERE p.$key = '$id' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.period ASC";
+			}
 		}
-		return $this->_getQuery($sql);
-	}
-
-	public function getQuotaSum($startPeriod, $length) {
-		$endPeriod = $this->_endPeriod($startPeriod, $length);
-		$sql = "SELECT p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
-			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
-			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-			   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.period ORDER BY p.period ASC";
 
 		return $this->_getQuery($sql);
 	}
@@ -310,7 +316,7 @@ class Plupp {
 		$available = 'availableLatest';
 		$endPeriod = $this->_endPeriod($startPeriod, $length);
 
-		$keyMap = array('department' => 'departmentId', 'team' => 'teamId');
+		$keyMap = array('department' => 'departmentId', 'resource' => 'resourceId', 'team' => 'teamId');
 		$key = array_key_exists($filter, $keyMap) ? $keyMap[$filter] : null;
 
 		$sql = null;
@@ -321,6 +327,7 @@ class Plupp {
 				   "ORDER BY a.period ASC";
 		}
 		else {
+			// @TODO FIXME shouldn't this be a sum?
 			// get all resources on top level
 			$sql = "SELECT r.resourceId AS id, a.period AS period, a.value AS value FROM $available a " .
 				   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .

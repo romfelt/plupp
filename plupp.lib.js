@@ -80,11 +80,8 @@ Plupp = {
 	getResourceAllocation:function(startPeriod, length, projectId, teamId) {
 		return this._getWithOptionalArgs("resourceallocation", startPeriod, length, projectId, teamId);
 	},
-	setAllocation:function(data) {
-		return new PluppRequest("allocation", data);
-	},
-	getTeams:function() {
-		return new PluppRequest("team");
+	setAllocation:function(projectId, data) {
+		return new PluppRequest("allocation/" + projectId, data);
 	},
 	getTeam:function(teamId) {
 		return new PluppRequest("team/" + teamId);
@@ -113,24 +110,17 @@ Plupp = {
 	getPlanSum:function(startPeriod, length) {
 		return new PluppRequest("plansum/" + startPeriod + "/" + length);
 	},
-	setQuotas:function(data) {
+	setQuota:function(data) {
 		return new PluppRequest("quota", data);
 	},
-	getQuota:function(projectId, startPeriod, length) {
-		return new PluppRequest("quota/" + startPeriod + "/" + length + "/" + projectId);
-	},
-	getQuotas:function(startPeriod, length) {
-		return new PluppRequest("quota/" + startPeriod + "/" + length);
-	},
-	getQuotaSum:function(startPeriod, length) {
-		return new PluppRequest("quotasum/" + startPeriod + "/" + length);
+	getQuota:function(startPeriod, length, filter, id) {
+		return this._getIntervalWithOptionalFilterId("quota", startPeriod, length, filter, id);
 	},
 
-	// Helper function to get a service with any number of arguments. Note that the service
-	// must be first argument.
-	_getWithOptionalArgs:function() {
-		var args = Array.prototype.slice.call(arguments); // using the arguments object
-		return new PluppRequest(args.join('/'));
+	// Helper function to get a service with any number of arguments.
+	_getWithOptionalArgs:function(service) {
+		var args = Array.prototype.slice.call(arguments, 1); // using the arguments object
+		return new PluppRequest(service + "/" + args.join('/'));
 	},
 
 	// helper function to get a service with a given interval and optional fiter and id

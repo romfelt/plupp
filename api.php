@@ -24,7 +24,6 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetPlanSum::DESCRIPTION . '<br>';
 	echo SetQuota::DESCRIPTION . '<br>';
 	echo GetQuota::DESCRIPTION . '<br>';
-	echo GetQuotaSum::DESCRIPTION . '<br>';
 	echo GetProject::DESCRIPTION . '<br>';
 	echo GetDepartment::DESCRIPTION . '<br>';
 	echo GetTeam::DESCRIPTION . '<br>';
@@ -74,7 +73,6 @@ else if ($method == 'GET') {
 		case GetResource::API: $obj = new GetResource($request); break;
 		case GetResourceAvailability::API: $obj = new GetResourceAvailability($request); break;
 		case GetQuota::API: $obj = new GetQuota($request); break;
-		case GetQuotaSum::API: $obj = new GetQuotaSum($request); break;
 		case GetSession::API: $obj = new GetSession($request); break;
 		case GetLogout::API: $obj = new GetLogout($request); break;
 	}
@@ -359,29 +357,13 @@ class SetQuota extends ServiceEndPoint {
 	}
 }
 
-class GetQuota extends ServiceEndPointIntervalId {
-	const DESCRIPTION = 'GET /quota/{startPeriod}/{length}/{projectId}, get project resource quotas for a specific project within a given time intervall. {projectId} is optional, leaving this blank will return quota for all projects.';
+class GetQuota extends ServiceEndPointIntervalFilterId {
+	const DESCRIPTION = 'GET /quota/{startPeriod}/{length}/{filter}/{id}, get resource quotas within a given time intervall. {filter} and {id} are optional, leaving these blank will return total quota sum quota for all projects. Setting just {filter} will return quota aggregated on projects and with {id} set only quota for that specific project.';
 	const API = 'quota';
 
 	protected function service() {
 		$this->initArgs();
-		list($rc, $this->reply) = $this->plupp->getQuota($this->startPeriod, $this->length, $this->optionalId);
-		return $rc === true;
-	}
-}
-
-class GetQuotaSum extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /quotasum/{startPeriod}/{length}, get the total sum of project resource quotas for all projects within a given time intervall.';
-	const API = 'quotasum';
-
-	public function __construct($request) {
-		parent::__construct($request, 2);
-	}
-
-	protected function service() {
-		$startPeriod = $this->request[1];
-		$length = $this->request[2];
-		list($rc, $this->reply) = $this->plupp->GetQuotaSum($startPeriod, $length);
+		list($rc, $this->reply) = $this->plupp->getQuota($this->startPeriod, $this->length, $this->optionalFilter, $this->optionalId);
 		return $rc === true;
 	}
 }
