@@ -277,7 +277,7 @@ class GetPlan extends ServiceEndPointIntervalId {
 }
 
 class GetAllocation extends ServiceEndPointIntervalFilterId {
-	const DESCRIPTION = 'GET /allocation/{startPeriod}/{length}/{filter}/{id}/{group}, get total resource allocation plan within a given time intervall. {filter}, {id} and {group} are optional, leaving those blank will return sum on top level. Leaving just {id} and {group} blank will return sum aggregated based on filter: project, team or resource. {group} specifies how results for a certain filter/id pair should be returned.';
+	const DESCRIPTION = 'GET /allocation/{startPeriod}/{length}/{filter}/{id}/{group}, get total resource allocation plan within a given time intervall. {filter}, {id} and {group} are optional, leaving those blank will return sum on top level. Leaving just {id} and {group} blank will return sum aggregated based on filter: raw (special case where {id} and {group} is ignored), project, team or resource. {group} specifies how results for a certain filter/id pair should be returned.';
 	const API = 'allocation';
 
 	protected function service() {

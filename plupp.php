@@ -253,8 +253,8 @@ class Plupp {
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
 			   "    SELECT a.projectId AS projectId, a.resourceId AS resourceId, a.period AS period, a.value AS value FROM " . self::TABLE_ALLOCATION . " a INNER JOIN ( " .
 			   "        SELECT projectId, resourceId, value, period, MAX(timestamp) AS latest FROM " . self::TABLE_ALLOCATION . " GROUP BY projectId, resourceId, period " .
-			   "    ) b ON a.projectId = b.projectId AND a.resourceId = b.resourceId AND a.period = b.period AND a.timestamp = b.latest " .
-			   "    WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+			   "   ) b ON a.projectId = b.projectId AND a.resourceId = b.resourceId AND a.period = b.period AND a.timestamp = b.latest " .
+			   "   WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 			   ")";
 
 		return $this->_setQuery($sql);
@@ -383,7 +383,7 @@ class Plupp {
 		$allocation = 'allocationLatest';
 		$endPeriod = $this->_endPeriod($startPeriod, $length);
 
-		$keyMap = array('project' => 'a.projectId', 'department' => 'r.departmentId', 'team' => 'r.teamId', 'resource' => 'r.resourceId');
+		$keyMap = array('raw' => 'raw', 'project' => 'a.projectId', 'department' => 'r.departmentId', 'team' => 'r.teamId', 'resource' => 'r.resourceId');
 		$selectKey = array_key_exists($filter, $keyMap) ? $keyMap[$filter] : null;
 		$groupKey = array_key_exists($group, $keyMap) ? $keyMap[$group] : null;
 
@@ -408,7 +408,14 @@ class Plupp {
 				return $arr;
 			}
 
-			if ($id === null) {
+			// special case with raw access, no aggregation and no filtering.
+			if ($selectKey === 'raw') {
+				$sql = "SELECT r.resourceId AS id, a.projectId AS projectId, a.period AS period, a.value AS value FROM $allocation a " .
+					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+					   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
+					   "ORDER BY r.resourceId ASC, a.period ASC";					
+			}
+			else if ($id === null) {
 				$sql = "SELECT $selectKey AS id, a.period AS period, SUM(a.value) AS value FROM $allocation a " .
 					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 					   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
