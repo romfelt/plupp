@@ -53,7 +53,7 @@ function PluppTable(tableTitle, requestService, requestId) {
 			d.push([v.name, v.id]); // store name and id
 			self.lookup[v.id] = i; // associate name with index
 		});
-		var obj = {'type': 'header', 'title': title, 'data': d};
+		var obj = {'type': 'title', 'title': title, 'data': d};
 		self.table.push(obj);
 
 		// create an array of zeroes to be reused to save some time
@@ -214,7 +214,7 @@ function PluppTable(tableTitle, requestService, requestId) {
 						.data('period', v[1])); // store timestamp as data in cell to be used when posting
 				});
 			}
-			else if (obj.type == 'header') {
+			else if (obj.type == 'title') {
 				$.each(obj.data, function(i, v) {
 					tr.append($('<td/>')
 						.addClass('cell-title-header')
@@ -300,7 +300,8 @@ function PluppTable(tableTitle, requestService, requestId) {
 		// get all dirty cells, i.e. those modified
 		$('#' + self.tableId + ' td.cell-dirty').each(function(i, e) {
 			// time period value is stored as data in top cell of same column
-			var period = $('#' + self.tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')').data('period'); 
+			// TODO this must be made generic based on type of id data stored
+			var period = $('#' + self.tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')').data('period');
 		    var id = $(e).closest('tr').data('id'); // id value stored as data in row element
 		    var value = parseFloat($(e).text());
 			if (!isNaN(value)) { // @TODO add checks for all variables

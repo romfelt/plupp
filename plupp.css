@@ -93,12 +93,18 @@ h1 {
 }
 
 .cell-title-header {
+	text-align: center;;
 	font-weight: bold;
-	transform: rotate(90deg);
-	transform-origin: left top 0;
+	white-space: nowrap;
+	overflow: hidden;
+/*
+	transform: rotate(-80deg);
+	display: inline-block;
+*/
 }
 
 .cell-header {
+	white-space: nowrap;
 	font-weight: bold;
 }
 
