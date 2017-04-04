@@ -204,7 +204,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		.then(function() {
 			if (self.mode == 'table') {
 				var t = new PluppTable(self.title, 'quotas');
-				t.addNameHeader('Project', projects.reply.data);
+				t.addNameHeader(projects.reply.data, ['projectId', 'period']);
 				t.addDataSection(resc.reply.data, alloc.reply.data, 'projectId', 'editable');
 				t.addSum();
 				t.addDataRow('Quota', quotas.reply.data, 'projectId', 'header');

@@ -33,11 +33,11 @@ function PluppTable(tableTitle, requestService, requestId) {
 		var m = moment(startPeriod);
 		var d = [];
 		for (var i = 0; i < self.length; i++) {
-			d.push([m.format("MMM YYYY"), m.format("YYYY-MM-DD")]); // store both user format as well as internal API format (2016-01-01)
+			d.push([m.format("MMM YYYY"), m.format("YYYY-MM-DD"), 'period']); // store both user format as well as internal API format (2016-01-01)
 			self.lookup[m.format("YYYY-MM-DD")] = i; // associate date with index
 			m.add(1, 'month'); // increase one month
 		}
-		var obj = {'type': 'time', 'title': 'Month', 'data': d};
+		var obj = {'type': 'title', 'title': '', 'data': d};
 		self.table.push(obj);
 
 		// create an array of zeroes to be reused to save some time
@@ -45,15 +45,15 @@ function PluppTable(tableTitle, requestService, requestId) {
 	}
 
 	// add title/id header row
-	this.addNameHeader = function(title, data) {
+	this.addNameHeader = function(data, fieldName) {
 		self.length = data.length;
 		self.lookup = {}; // reset column lookup table
 		var d = [];
 		$.each(data, function(i, v) {
-			d.push([v.name, v.id]); // store name and id
+			d.push([v.name, v.id, fieldName]); // store name, id and name of id field when doing a post
 			self.lookup[v.id] = i; // associate name with index
 		});
-		var obj = {'type': 'title', 'title': title, 'data': d};
+		var obj = {'type': 'title', 'title': '', 'data': d};
 		self.table.push(obj);
 
 		// create an array of zeroes to be reused to save some time
@@ -206,20 +206,13 @@ function PluppTable(tableTitle, requestService, requestId) {
 			}
 
 			tr.append(td);
-			if (obj.type == 'time') {
+			if (obj.type == 'title') {
 				$.each(obj.data, function(i, v) {
 					tr.append($('<td/>')
 						.addClass('cell-title-header')
 						.text(v[0])
-						.data('period', v[1])); // store timestamp as data in cell to be used when posting
-				});
-			}
-			else if (obj.type == 'title') {
-				$.each(obj.data, function(i, v) {
-					tr.append($('<td/>')
-						.addClass('cell-title-header')
-						.text(v[0])
-						.data('projectId', v[1])); // TODO make this configurable and even more generic combining it with type=='time'
+						.data('idValue', v[1]) // store timestamp/title and its name as data in cell to be used when posting
+						.data('idName', v[2])); 
 				});
 			}
 			else if (obj.type == 'editable') {
@@ -299,13 +292,14 @@ function PluppTable(tableTitle, requestService, requestId) {
 
 		// get all dirty cells, i.e. those modified
 		$('#' + self.tableId + ' td.cell-dirty').each(function(i, e) {
-			// time period value is stored as data in top cell of same column
-			// TODO this must be made generic based on type of id data stored
-			var period = $('#' + self.tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')').data('period');
+			var title = $('#' + self.tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')'); // time period or id value is stored as data in top cell of same column
 		    var id = $(e).closest('tr').data('id'); // id value stored as data in row element
 		    var value = parseFloat($(e).text());
-			if (!isNaN(value)) { // @TODO add checks for all variables
-				requestData.data.push({'id' : id, 'period' : period, 'value' : value});
+			if (!isNaN(value) && top !== undefined) { // @TODO add checks for all variables
+				// TODO add table data
+				var obj = {'id' : id, 'value' : value };
+				obj[title.data('idName')] = title.data('idValue');
+				requestData.data.push(obj);
 			}
 		});
 
