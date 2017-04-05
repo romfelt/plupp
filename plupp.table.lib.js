@@ -1,20 +1,28 @@
-// @TODO remove args, reuse from parent reference
-
 //
 // Class for building dynamic and interactive tables. 
 //
-// NOTE that a header must be added before other data is added.
+// NOTE that a header must be added before other data is added, because header specifies number of data columns.
 //
-function PluppTable(tableTitle, requestService, requestId) {
+// @param tableTitle Title string that is displayed above the table.
+// @param options are optional arguments that controls function of the table with the following structure:
+//			{
+// 				request: *,		Optional. The request service called when doing a post.
+// 				requestId: *,	Optional. An id to be used when calling the service, some service end-points require this.
+// 				postData: *,	Optional. An object of key-value pairs carrying additional data to be added to service 
+//								post data as part of each element. For example: {'projectId' : 1, 'someArg' : 'someString', ...}
+// 				tableId: *,		Optional. Table DOM id, default is 'pluppTable'. 
+// 			}
+//
+function PluppTable(tableTitle, options) {
 	var self = this; // keep reference to this object to be used independent of call context
+	var defaults = {'tableId': 'pluppTable'};
+
 	this.tableTitle = tableTitle;
-	this.tableId = 'pluppTable';
 	this.length = 0; // number of data columns, set by header functions
-	this.requestService = requestService;
-	this.requestId = requestId;
 	this.table = [];
 	this.zeroes = null;
 	this.lookup = {}; // column lookup table to avoid searching when populating cells, returns delta index
+ 	this.settings = $.extend({}, defaults, options); // make sure we have an options object with a defined 'tableId' even though no is supplied
 
 	// returns array of length with pre-defined values
 	this.getArray = function(length, startValue, increment) {
@@ -111,10 +119,10 @@ function PluppTable(tableTitle, requestService, requestId) {
 	// set or get cell value
 	this.cell = function(column, row, value) {
 		if (typeof(value) === 'undefined') {
-			return $('#' + self.tableId + ' tr:eq(' + row + ') td:eq(' + column + ')').text();
+			return $('#' + self.settings.tableId + ' tr:eq(' + row + ') td:eq(' + column + ')').text();
 		}
 		else {
-			$('#' + self.tableId + ' tr:eq(' + row + ') td:eq(' + column + ')').text(value);
+			$('#' + self.settings.tableId + ' tr:eq(' + row + ') td:eq(' + column + ')').text(value);
 		}
 	}
 
@@ -141,7 +149,7 @@ function PluppTable(tableTitle, requestService, requestId) {
 	}
 
 	this.updateSums = function() {
-		$('#' + self.tableId + ' .cell-sum').each(function(i, e) {
+		$('#' + self.settings.tableId + ' .cell-sum').each(function(i, e) {
 			var c = $(e).index();
 		    var r = $(e).closest('tr').index();
 			var s = self.sum(c, 1, 1, r - 1);
@@ -151,7 +159,7 @@ function PluppTable(tableTitle, requestService, requestId) {
 	}
 
 	this.updateDeltas = function() {
-		$('#' + self.tableId + ' .cell-delta').each(function(i, e) {
+		$('#' + self.settings.tableId + ' .cell-delta').each(function(i, e) {
 		    var tr = $(e).closest('tr');
 			var c = $(e).index();
 		    var r = tr.index();
@@ -185,7 +193,8 @@ function PluppTable(tableTitle, requestService, requestId) {
 
 	// @TODO remove editable, if there are cells of type editable make it editable... doh!
 	this.build = function(editable, container, callback) {
-		var table = $('<table id="' + self.tableId + '"/>').addClass('edit-table');
+		$('#buttons').fadeOut();
+		var table = $('<table id="' + self.settings.tableId + '"/>').addClass('edit-table');
 
 		$.each(self.table, function(i, obj) {
 			var tr = $("<tr/>");
@@ -253,7 +262,7 @@ function PluppTable(tableTitle, requestService, requestId) {
 
 			var cancel = $('<button id="undo">Undo</button>')
 				.click(function() {
-					$('#' + self.tableId + ' td.cell-dirty').each(function(i, e) {
+					$('#' + self.settings.tableId + ' td.cell-dirty').each(function(i, e) {
 						$(e).text($(e).data('value')).removeClass('cell-dirty');
 					});
 					$('#buttons').fadeOut();
@@ -291,14 +300,17 @@ function PluppTable(tableTitle, requestService, requestId) {
 		var requestData = {'data' : []};
 
 		// get all dirty cells, i.e. those modified
-		$('#' + self.tableId + ' td.cell-dirty').each(function(i, e) {
-			var title = $('#' + self.tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')'); // time period or id value is stored as data in top cell of same column
+		$('#' + self.settings.tableId + ' td.cell-dirty').each(function(i, e) {
+			var title = $('#' + self.settings.tableId + ' tr:eq(0) td:eq(' + $(e).index() + ')'); // time period, id or other value is stored as data in title cell of same column
 		    var id = $(e).closest('tr').data('id'); // id value stored as data in row element
 		    var value = parseFloat($(e).text());
 			if (!isNaN(value) && top !== undefined) { // @TODO add checks for all variables
-				// TODO add table data
 				var obj = {'id' : id, 'value' : value };
 				obj[title.data('idName')] = title.data('idValue');
+				// add additional table POST data if specififed
+				if (self.settings.postData !== undefined) {
+					$.extend(obj, self.settings.postData);
+				}
 				requestData.data.push(obj);
 			}
 		});
@@ -309,21 +321,24 @@ function PluppTable(tableTitle, requestService, requestId) {
 		}
 
 		var request;
-		switch (self.requestService) {
+		switch (self.settings.request) {
 			case 'quotas' : 
 				request = Plupp.setQuota(requestData);
 				break;
 			case 'plan' : 
-				request = Plupp.setPlan(self.requestId, requestData);
+				request = Plupp.setPlan(self.settings.requestId, requestData);
 				break;
 			case 'resourceavailability' : 
 				request = Plupp.setResourceAvailability(requestData);
 				break;
 			case 'allocation' : 
-				request = Plupp.setAllocation(self.requestId, requestData);
+				request = Plupp.setAllocation(self.settings.requestId, requestData);
+				break;
+			case 'fake' : // for debug purposes only
+				request = Plupp.setFake(requestData);
 				break;
 			default: 
-				console.log("missing post-hook for service: " + self.requestService);
+				console.log("missing post-hook for service: " + self.settings.request);
 				return;
 		}
 
@@ -336,7 +351,7 @@ function PluppTable(tableTitle, requestService, requestId) {
 			}
 			else {
 				// remove dirty styling and store new value to data field to enable undo again
-				$('#' + self.tableId + ' td.cell-dirty').each(function(i, e) {
+				$('#' + self.settings.tableId + ' td.cell-dirty').each(function(i, e) {
 					$(e).data('value', $(e).text()).removeClass('cell-dirty');
 				});
 				$('#buttons').fadeOut();

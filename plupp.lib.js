@@ -117,7 +117,12 @@ Plupp = {
 		return this._getIntervalWithOptionalFilterId("quota", startPeriod, length, filter, id);
 	},
 
-	// Helper function to get a service with any number of arguments.
+	// for debugging purposes only
+	setFake:function(data) {
+		return new PluppRequest("fake", data);
+	},
+
+	// helper function to get a service with any number of arguments.
 	_getWithOptionalArgs:function(service) {
 		var args = Array.prototype.slice.call(arguments, 1); // using the arguments object
 		return new PluppRequest(service + "/" + args.join('/'));
