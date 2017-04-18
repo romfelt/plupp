@@ -203,7 +203,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'request': 'fake', 'postData': {'period': self.startPeriod}});
+				var t = new PluppTable(self.title, {'request': 'allocation', 'postData': {'period': self.startPeriod}});
 				t.addNameHeader(projects.reply.data, 'projectId');
 				t.addDataSection(resc.reply.data, alloc.reply.data, 'projectId', 'editable');
 				t.addSum();
@@ -250,9 +250,9 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 
 	this.plans = function() {
 		self.view = self.plans;
-		self.title = 'Project Resource Plans';
+		self.title = 'Projects Resource Plans';
 		var projects = Plupp.getProjects();
-		var alloc = Plupp.getAllocation(self.startPeriod, self.length, 'project');
+		var alloc = Plupp.getPlan(self.startPeriod, self.length, 'project');
 		var quotas = Plupp.getQuota(self.startPeriod, self.length);
 
 		$.when(
@@ -281,7 +281,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		self.viewArg = arguments;
 		var projectId = arguments[0];
 		var teams = Plupp.getTeams();
-		var alloc = Plupp.getAllocation(self.startPeriod, self.length, 'project', projectId, 'team');
+		var alloc = Plupp.getPlan(self.startPeriod, self.length, 'project', projectId, 'team');
 		var quota = Plupp.getQuota(startPeriod, length, 'project', projectId);
 		var project = Plupp.getProject(projectId);
 
@@ -318,7 +318,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		var projectId = arguments[1];
 		var project = Plupp.getProject(projectId);
 		var team = Plupp.getTeam(teamId);
-		var alloc = Plupp.getResourceAllocation(self.startPeriod, self.length, projectId, teamId);
+		var alloc = Plupp.getResourcePlan(self.startPeriod, self.length, projectId, teamId);
 		var resc = Plupp.getResource('team', teamId);
 
 		$.when(
@@ -330,7 +330,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 			}
 
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'request': 'allocation', 'requestId': projectId});
+				var t = new PluppTable(self.title, {'request': 'plan', 'postData': {'projectId': projectId}});
+//				var t = new PluppTable(self.title, {'request': 'plan', 'requestId': projectId});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(resc.reply.data, alloc.reply.data, 'period', 'editable', projectId);
 				t.addSum();

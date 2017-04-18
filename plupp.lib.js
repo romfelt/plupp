@@ -29,10 +29,10 @@ function PluppRequest(service, data) {
 	this.run = function() {
 		var jqxhr;
 		if (typeof(self.data) === 'undefined') {
-			jqxhr = $.get("/plupp/api.php/" + self.service);
+			jqxhr = $.get("api.php/" + self.service);
 		}
 		else {
-			jqxhr = $.post("/plupp/api.php/" + self.service, self.data);
+			jqxhr = $.post("api.php/" + self.service, self.data);
 		}
 
 		jqxhr.done(self.onSuccess)
@@ -74,14 +74,23 @@ Plupp = {
 	setResourceAvailability:function(data) {
 		return new PluppRequest("resourceavailability", data);
 	},
+	setAllocation:function(data) {
+		return new PluppRequest("allocation", data);
+	},
 	getAllocation:function(startPeriod, length, filter, id, group) {
 		return this._getWithOptionalArgs("allocation", startPeriod, length, filter, id, group);
 	},
 	getResourceAllocation:function(startPeriod, length, projectId, teamId) {
 		return this._getWithOptionalArgs("resourceallocation", startPeriod, length, projectId, teamId);
 	},
-	setAllocation:function(projectId, data) {
-		return new PluppRequest("allocation/" + projectId, data);
+	setPlan:function(data) {
+		return new PluppRequest("plan", data);
+	},
+	getPlan:function(startPeriod, length, filter, id, group) {
+		return this._getWithOptionalArgs("plan", startPeriod, length, filter, id, group);
+	},
+	getResourcePlan:function(startPeriod, length, projectId, teamId) {
+		return this._getWithOptionalArgs("resourceplan", startPeriod, length, projectId, teamId);
 	},
 	getTeam:function(teamId) {
 		return new PluppRequest("team/" + teamId);
@@ -89,15 +98,17 @@ Plupp = {
 	getTeams:function() {
 		return new PluppRequest("team");
 	},
+	getAvailable:function(startPeriod, length, filter, id) {
+		return this._getIntervalWithOptionalFilterId("available", startPeriod, length, filter, id);
+	},
+/* TODO clean up
 	getTeamsPlan:function(startPeriod, length) {
 		return new PluppRequest("teamsplan/" + startPeriod + "/" + length);
 	},
 	getTeamPlans:function(teamId, startPeriod, length) {
 		return new PluppRequest("teamplans/" + teamId + "/" + startPeriod + "/" + length);
 	},
-	getAvailable:function(startPeriod, length, filter, id) {
-		return this._getIntervalWithOptionalFilterId("available", startPeriod, length, filter, id);
-	},
+
 	setPlan:function(projectId, data) {
 		return new PluppRequest("plan/" + projectId, data);
 	},
@@ -110,6 +121,7 @@ Plupp = {
 	getPlanSum:function(startPeriod, length) {
 		return new PluppRequest("plansum/" + startPeriod + "/" + length);
 	},
+	*/
 	setQuota:function(data) {
 		return new PluppRequest("quota", data);
 	},
@@ -117,12 +129,7 @@ Plupp = {
 		return this._getIntervalWithOptionalFilterId("quota", startPeriod, length, filter, id);
 	},
 
-	// for debugging purposes only
-	setFake:function(data) {
-		return new PluppRequest("fake", data);
-	},
-
-	// helper function to get a service with any number of arguments.
+	// Helper function to get a service with any number of arguments.
 	_getWithOptionalArgs:function(service) {
 		var args = Array.prototype.slice.call(arguments, 1); // using the arguments object
 		return new PluppRequest(service + "/" + args.join('/'));

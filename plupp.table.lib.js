@@ -326,13 +326,13 @@ function PluppTable(tableTitle, options) {
 				request = Plupp.setQuota(requestData);
 				break;
 			case 'plan' : 
-				request = Plupp.setPlan(self.settings.requestId, requestData);
+				request = Plupp.setPlan(requestData);
 				break;
 			case 'resourceavailability' : 
 				request = Plupp.setResourceAvailability(requestData);
 				break;
 			case 'allocation' : 
-				request = Plupp.setAllocation(self.settings.requestId, requestData);
+				request = Plupp.setAllocation(requestData);
 				break;
 			case 'fake' : // for debug purposes only
 				request = Plupp.setFake(requestData);

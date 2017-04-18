@@ -18,17 +18,18 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo "<h1>PLUPP API description</h1>";
 	echo SetPlan::DESCRIPTION . '<br>';
 	echo GetPlan::DESCRIPTION . '<br>';
+	echo GetResourcePlan::DESCRIPTION . '<br>';
 	echo SetAllocation::DESCRIPTION . '<br>';
 	echo GetAllocation::DESCRIPTION . '<br>';
 	echo GetResourceAllocation::DESCRIPTION . '<br>';
-	echo GetPlanSum::DESCRIPTION . '<br>';
+// TODO	echo GetPlanSum::DESCRIPTION . '<br>';
 	echo SetQuota::DESCRIPTION . '<br>';
 	echo GetQuota::DESCRIPTION . '<br>';
 	echo GetProject::DESCRIPTION . '<br>';
 	echo GetDepartment::DESCRIPTION . '<br>';
 	echo GetTeam::DESCRIPTION . '<br>';
-	echo GetTeamPlans::DESCRIPTION . '<br>';
-	echo GetTeamsPlan::DESCRIPTION . '<br>';
+// TODO		echo GetTeamPlans::DESCRIPTION . '<br>';
+// TODO		echo GetTeamsPlan::DESCRIPTION . '<br>';
 	echo GetAvailable::DESCRIPTION . '<br>';
 	echo GetResource::DESCRIPTION . '<br>';
 	echo SetResourceAvailability::DESCRIPTION . '<br>';
@@ -61,13 +62,14 @@ if ($method == 'POST') {
 else if ($method == 'GET') {
 	switch ($cmd) {
 		case GetPlan::API: $obj = new GetPlan($request); break;
+		case GetResourcePlan::API: $obj = new GetResourcePlan($request); break;
 		case GetAllocation::API: $obj = new GetAllocation($request); break;
 		case GetResourceAllocation::API: $obj = new GetResourceAllocation($request); break;
-		case GetPlanSum::API: $obj = new GetPlanSum($request); break;
+// TODO		case GetPlanSum::API: $obj = new GetPlanSum($request); break;
 		case GetDepartment::API: $obj = new GetDepartment($request); break;
 		case GetTeam::API: $obj = new GetTeam($request); break;
-		case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
-		case GetTeamsPlan::API: $obj = new GetTeamsPlan($request); break;
+// TODO				case GetTeamPlans::API: $obj = new GetTeamPlans($request); break;
+// TODO				case GetTeamsPlan::API: $obj = new GetTeamsPlan($request); break;
 		case GetAvailable::API: $obj = new GetAvailable($request); break;
 		case GetProject::API: $obj = new GetProject($request); break;
 		case GetResource::API: $obj = new GetResource($request); break;
@@ -245,39 +247,8 @@ class ServiceEndPointFilterId extends ServiceEndPoint {
 	}
 }
 
-// JSON data in body
-class SetPlan extends ServiceEndPoint {
-	const DESCRIPTION = 'POST /plan/{projectId}, set new project resource plan.';
-	const API = 'plan';
-
-	protected $anonymous = false;
-
-	public function __construct($request) {
-		parent::__construct($request, 1);
-	}
-
-	protected function service() {
-		$projectId = $this->request[1];
-		$data = $_POST['data'];
-		list($rc, $this->reply) = $this->plupp->setPlan($this->session->getUserId(), $projectId, $data, 'id', 'period', 'value');
-		return $rc === true;
-	}
-}
-
-class GetPlan extends ServiceEndPointIntervalId {
-	const DESCRIPTION = 'GET /plan/{startPeriod}/{length}/{projectId}, get detailed project resource plan with team break-down within a given time intervall. {projectId} is optional and if left out resource plans for all projects within a given time intervall, i.e. how much total resources each project requests are returned.';
-	const API = 'plan';
-
-	protected function service() {
-		$this->initArgs();
-		list($rc, $this->reply) = $this->plupp->getPlan($this->startPeriod, $this->length, $this->optionalId);
-		$this->reply['projectId'] = $this->optionalId;
-		return $rc === true;
-	}
-}
-
 class GetAllocation extends ServiceEndPointIntervalFilterId {
-	const DESCRIPTION = 'GET /allocation/{startPeriod}/{length}/{filter}/{id}/{group}, get total resource allocation plan within a given time intervall. {filter}, {id} and {group} are optional, leaving those blank will return sum on top level. Leaving just {id} and {group} blank will return sum aggregated based on filter: raw (special case where {id} and {group} is ignored), project, team or resource. {group} specifies how results for a certain filter/id pair should be returned.';
+	const DESCRIPTION = 'GET /allocation/{startPeriod}/{length}/{filter}/{id}/{group}, get total resource allocation within a given time intervall. {filter}, {id} and {group} are optional, leaving those blank will return sum on top level. Leaving just {id} and {group} blank will return sum aggregated based on filter: raw (special case where {id} and {group} is ignored), project, team or resource. {group} specifies how results for a certain filter/id pair should be returned.';
 	const API = 'allocation';
 
 	protected function service() {
@@ -310,42 +281,65 @@ class GetResourceAllocation extends ServiceEndPoint {
 
 // JSON data in body
 class SetAllocation extends ServiceEndPoint {
-	const DESCRIPTION = 'POST /allocation/{projectId}, set new project resource allocation plan.';
+	const DESCRIPTION = 'POST /allocation, set project resource allocation according to JSON data payload format [{ id, projectId, value, period }, ...] where id is resource id.';
 	const API = 'allocation';
 
 	protected $anonymous = false;
 
-	public function __construct($request) {
-		parent::__construct($request, 1);
-	}
-
 	protected function service() {
-		$projectId = $this->request[1];
 		$data = $_POST['data'];
-		list($rc, $this->reply) = $this->plupp->setAllocation($this->session->getUserId(), $projectId, $data, 'id', 'period', 'value');
+		list($rc, $this->reply) = $this->plupp->setAllocation($this->session->getUserId(), $data, 'id', 'period', 'value', 'projectId');
 		return $rc === true;
 	}
 }
 
+class GetPlan extends ServiceEndPointIntervalFilterId {
+	const DESCRIPTION = 'GET /plan/{startPeriod}/{length}/{filter}/{id}/{group}, get total resource allocation plan within a given time intervall. {filter}, {id} and {group} are optional, leaving those blank will return sum on top level. Leaving just {id} and {group} blank will return sum aggregated based on filter: raw (special case where {id} and {group} is ignored), project, team or resource. {group} specifies how results for a certain filter/id pair should be returned.';
+	const API = 'plan';
 
-class GetPlanSum extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /plansum/{startPeriod}/{length}, get the total sum of requested resources for all projects within a given time intervall.';
-	const API = 'plansum';
+	protected function service() {
+		$this->initArgs();
+		list($rc, $this->reply) = $this->plupp->getPlan($this->startPeriod, $this->length, $this->optionalFilter, $this->optionalId, $this->optionalGroup);
+		return $rc === true;
+	}
+}
+
+class GetResourcePlan extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /resourceplan/{startPeriod}/{length}/{projectId}/{teamId}, get resources from a specific team planned to a certain project within a given time intervall.';
+	const API = 'resourceplan';
 
 	public function __construct($request) {
-		parent::__construct($request, 2);
+		parent::__construct($request, 4);
 	}
 
 	protected function service() {
 		$startPeriod = $this->request[1];
 		$length = $this->request[2];
-		list($rc, $this->reply) = $this->plupp->getPlanSum($startPeriod, $length);
+		$projectId = $this->request[3];
+		$teamId = $this->request[4];
+
+		list($rc, $this->reply) = $this->plupp->getResourcePlan($startPeriod, $length, $projectId, $teamId);
+		return $rc === true;
+	}
+}
+
+
+// JSON data in body
+class SetPlan extends ServiceEndPoint {
+	const DESCRIPTION = 'POST /plan, set project resource plan according to JSON data payload format [{ id, projectId, value, period }, ...] where id is resource id.';
+	const API = 'plan';
+
+	protected $anonymous = false;
+
+	protected function service() {
+		$data = $_POST['data'];
+		list($rc, $this->reply) = $this->plupp->setPlan($this->session->getUserId(), $data, 'id', 'period', 'value', 'projectId');
 		return $rc === true;
 	}
 }
 
 class SetQuota extends ServiceEndPoint {
-	const DESCRIPTION = 'POST /quota, set new project quota.';
+	const DESCRIPTION = 'POST /quota, set project quota according to JSON data payload format [{ id, value, period }, ...] where id is project id.';
 	const API = 'quota';
 
 	protected $anonymous = false;
@@ -386,39 +380,6 @@ class GetTeam extends ServiceEndPoint {
 	protected function service() {
 		$teamId = $this->availableArgs > $this->requiredArgs ? $this->request[1] : null;
 		list($rc, $this->reply) = $this->plupp->getTeam($teamId);
-		return $rc === true;
-	}
-}
-
-class GetTeamsPlan extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /teamsplan/{startPeriod}/{length}, get aggregated project resource plan for all teams within a given time intervall, i.e. how much of each team is requested by the total project portfolio.';
-	const API = 'teamsplan';
-
-	public function __construct($request) {
-		parent::__construct($request, 2);
-	}
-
-	protected function service() {
-		$startPeriod = $this->request[1];
-		$length = $this->request[2];
-		list($rc, $this->reply) = $this->plupp->getTeamsPlan($startPeriod, $length);
-		return $rc === true;
-	}
-}
-
-class GetTeamPlans extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /teamplans/{teamId}/{startPeriod}/{length}, get all project resource plans for a team within a given time intervall, i.e. how much is a team requested by each project.';
-	const API = 'teamplans';
-
-	public function __construct($request) {
-		parent::__construct($request, 3);
-	}
-
-	protected function service() {
-		$teamId = $this->request[1];
-		$startPeriod = $this->request[2];
-		$length = $this->request[3];
-		list($rc, $this->reply) = $this->plupp->getTeamPlans($teamId, $startPeriod, $length);
 		return $rc === true;
 	}
 }
@@ -468,7 +429,7 @@ class GetResourceAvailability extends ServiceEndPointIntervalFilterId {
 }
 
 class SetResourceAvailability extends ServiceEndPoint {
-	const DESCRIPTION = 'POST /resourceavailability, set new resource availability.';
+	const DESCRIPTION = 'POST /resourceavailability, set resource availability according to JSON data payload format [{ id, value, period }, ...] where id is resource id.';
 	const API = 'resourceavailability';
 
 	protected $anonymous = false;
@@ -536,5 +497,90 @@ class GetLogout extends ServiceEndPoint {
 		return true;
 	}
 }
+
+
+
+/*
+class GetPlanSum extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /plansum/{startPeriod}/{length}, get the total sum of requested resources for all projects within a given time intervall.';
+	const API = 'plansum';
+
+	public function __construct($request) {
+		parent::__construct($request, 2);
+	}
+
+	protected function service() {
+		$startPeriod = $this->request[1];
+		$length = $this->request[2];
+		list($rc, $this->reply) = $this->plupp->getPlanSum($startPeriod, $length);
+		return $rc === true;
+	}
+}
+
+// JSON data in body
+class SetPlan extends ServiceEndPoint {
+	const DESCRIPTION = 'POST /plan/{projectId}, set new project resource plan.';
+	const API = 'plan';
+
+	protected $anonymous = false;
+
+	public function __construct($request) {
+		parent::__construct($request, 1);
+	}
+
+	protected function service() {
+		$projectId = $this->request[1];
+		$data = $_POST['data'];
+		list($rc, $this->reply) = $this->plupp->setPlan($this->session->getUserId(), $projectId, $data, 'id', 'period', 'value');
+		return $rc === true;
+	}
+}
+
+class GetPlan extends ServiceEndPointIntervalId {
+	const DESCRIPTION = 'GET /plan/{startPeriod}/{length}/{projectId}, get detailed project resource plan with team break-down within a given time intervall. {projectId} is optional and if left out resource plans for all projects within a given time intervall, i.e. how much total resources each project requests are returned.';
+	const API = 'plan';
+
+	protected function service() {
+		$this->initArgs();
+		list($rc, $this->reply) = $this->plupp->getPlan($this->startPeriod, $this->length, $this->optionalId);
+		$this->reply['projectId'] = $this->optionalId;
+		return $rc === true;
+	}
+}
+
+class GetTeamsPlan extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /teamsplan/{startPeriod}/{length}, get aggregated project resource plan for all teams within a given time intervall, i.e. how much of each team is requested by the total project portfolio.';
+	const API = 'teamsplan';
+
+	public function __construct($request) {
+		parent::__construct($request, 2);
+	}
+
+	protected function service() {
+		$startPeriod = $this->request[1];
+		$length = $this->request[2];
+		list($rc, $this->reply) = $this->plupp->getTeamsPlan($startPeriod, $length);
+		return $rc === true;
+	}
+}
+
+class GetTeamPlans extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /teamplans/{teamId}/{startPeriod}/{length}, get all project resource plans for a team within a given time intervall, i.e. how much is a team requested by each project.';
+	const API = 'teamplans';
+
+	public function __construct($request) {
+		parent::__construct($request, 3);
+	}
+
+	protected function service() {
+		$teamId = $this->request[1];
+		$startPeriod = $this->request[2];
+		$length = $this->request[3];
+		list($rc, $this->reply) = $this->plupp->getTeamPlans($teamId, $startPeriod, $length);
+		return $rc === true;
+	}
+}
+
+ */
 
 ?>

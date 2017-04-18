@@ -10,7 +10,7 @@
 class Plupp {
 	const TABLE_QUOTA = 'quota';
 	const TABLE_TEAM = 'team';
-	const TABLE_PLAN = 'plan';
+	const TABLE_PLAN = 'plan2';
 	const TABLE_PROJECT = 'project';
 	const TABLE_USER = 'user';
 	const TABLE_SESSION = 'session';
@@ -99,6 +99,7 @@ class Plupp {
 		return true;
 	}
 
+/* TODO
 	public function setPlan($userId, $projectId, $data, $teamIdKey, $periodKey, $valueKey) {
 		$sql = "INSERT INTO " . self::TABLE_PLAN . " (projectId, teamId, period, value, userId) VALUES";
 		$i = 0;
@@ -139,7 +140,7 @@ class Plupp {
 
 		return $this->_getQuery($sql);
 	}
-
+*/
 	public function setQuota($userId, $data, $projectIdKey, $periodKey, $valueKey) {
 		$sql = "INSERT INTO " . self::TABLE_QUOTA . " (projectId, period, value, userId) VALUES";
 		$i = 0;
@@ -206,6 +207,7 @@ class Plupp {
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " WHERE id = '$teamId'");
 	}
 
+/* TODO
 	public function getTeamsPlan($startPeriod, $length) {
 		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = "SELECT p.teamId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
@@ -225,7 +227,7 @@ class Plupp {
 
 		return $this->_getQuery($sql);
 	}
-
+*/
 	private function _createResourceDataTable($name) {
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
 			   "    SELECT a.resourceId AS resourceId, a.teamId AS teamId, a.type AS type, a.departmentId AS departmentId FROM " . self::TABLE_RESOURCE_DATA . " a INNER JOIN ( " .
@@ -248,11 +250,12 @@ class Plupp {
 		return $this->_setQuery($sql);
 	}
 
-	private function _createAllocationTable($name, $startPeriod, $length) {
+	// table should be one of TABLE_ALLOCATION and TABLE_PLAN
+	private function _createAllocationTable($table, $name, $startPeriod, $length) {
 		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
-			   "    SELECT a.projectId AS projectId, a.resourceId AS resourceId, a.period AS period, a.value AS value FROM " . self::TABLE_ALLOCATION . " a INNER JOIN ( " .
-			   "        SELECT projectId, resourceId, value, period, MAX(timestamp) AS latest FROM " . self::TABLE_ALLOCATION . " GROUP BY projectId, resourceId, period " .
+			   "    SELECT a.projectId AS projectId, a.resourceId AS resourceId, a.period AS period, a.value AS value FROM $table a INNER JOIN ( " .
+			   "        SELECT projectId, resourceId, value, period, MAX(timestamp) AS latest FROM $table GROUP BY projectId, resourceId, period " .
 			   "   ) b ON a.projectId = b.projectId AND a.resourceId = b.resourceId AND a.period = b.period AND a.timestamp = b.latest " .
 			   "   WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 			   ")";
@@ -351,17 +354,25 @@ class Plupp {
 		return $this->_setQuery($sql);
 	}
 
-	public function setAllocation($userId, $projectId, $data, $resourceIdKey, $periodKey, $valueKey) {
-		$sql = "INSERT INTO " . self::TABLE_ALLOCATION . " (projectId, resourceId, period, value, userId) VALUES";
+	private function _setAllocation($table, $userId, $data, $resourceIdKey, $periodKey, $valueKey, $projectIdKey) {
+		$sql = "INSERT INTO $table (projectId, resourceId, period, value, userId) VALUES";
 		$i = 0;
 		foreach ($data as $k => $v) {
 			if ($i++ > 0) {
 				$sql .= ',';
 			}
-			$sql .= " ('$projectId', '$v[$resourceIdKey]', '$v[$periodKey]', '$v[$valueKey]', '$userId')";
+			$sql .= " ('$v[$projectIdKey]', '$v[$resourceIdKey]', '$v[$periodKey]', '$v[$valueKey]', '$userId')";
 		}
 
 		return $this->_setQuery($sql);
+	}
+
+	public function setAllocation($userId, $data, $resourceIdKey, $periodKey, $valueKey, $projectIdKey) {
+		return $this->_setAllocation(self::TABLE_ALLOCATION, $userId, $data, $resourceIdKey, $periodKey, $valueKey, $projectIdKey);
+	}
+
+	public function setPlan($userId, $data, $resourceIdKey, $periodKey, $valueKey, $projectIdKey) {
+		return $this->_setAllocation(self::TABLE_PLAN, $userId, $data, $resourceIdKey, $periodKey, $valueKey, $projectIdKey);
 	}
 
 /*
@@ -378,7 +389,7 @@ class Plupp {
 
  */
 
-	public function getAllocation($startPeriod, $length, $filter, $id, $group) {
+	private function _getAllocation($table, $startPeriod, $length, $filter, $id, $group) {
 		$resource = 'resourceLatest';
 		$allocation = 'allocationLatest';
 		$endPeriod = $this->_endPeriod($startPeriod, $length);
@@ -388,7 +399,7 @@ class Plupp {
 		$groupKey = array_key_exists($group, $keyMap) ? $keyMap[$group] : null;
 
 		// prepare temporary table
-		$arr = $this->_createAllocationTable($allocation, $startPeriod, $length);
+		$arr = $this->_createAllocationTable($table, $allocation, $startPeriod, $length);
 		if ($arr[0] !== true) {
 			return $arr;
 		}
@@ -443,13 +454,21 @@ class Plupp {
 		return $this->_getQuery($sql);
 	}
 
-	public function getResourceAllocation($startPeriod, $length, $projectId, $teamId) {
+	public function getAllocation($startPeriod, $length, $filter, $id, $group) {
+		return $this->_getAllocation(self::TABLE_ALLOCATION, $startPeriod, $length, $filter, $id, $group);
+	}
+
+	public function getPlan($startPeriod, $length, $filter, $id, $group) {
+		return $this->_getAllocation(self::TABLE_PLAN, $startPeriod, $length, $filter, $id, $group);
+	}
+
+	private function _getResourceAllocation($table, $startPeriod, $length, $projectId, $teamId) {
 		$resource = 'resourceLatest';
 		$allocation = 'allocationLatest';
 		$endPeriod = $this->_endPeriod($startPeriod, $length);
 
 		// prepare temporary tables
-		$arr = $this->_createAllocationTable($allocation, $startPeriod, $length);
+		$arr = $this->_createAllocationTable($table, $allocation, $startPeriod, $length);
 		if ($arr[0] !== true) {
 			return $arr;
 		}
@@ -461,9 +480,17 @@ class Plupp {
 		$sql = "SELECT r.resourceId AS id, a.period AS period, a.value AS value FROM $allocation a " .
 			   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 			   "WHERE a.projectId = '$projectId' AND r.teamId = '$teamId' AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
-			   "ORDER BY r.resourceId ASC, a.period ASC";					
+			   "ORDER BY r.resourceId ASC, a.period ASC";
 
 		return $this->_getQuery($sql);
+	}
+
+	public function getResourceAllocation($startPeriod, $length, $projectId, $teamId) {
+		return $this->_getResourceAllocation(self::TABLE_ALLOCATION, $startPeriod, $length, $projectId, $teamId);
+	}
+
+	public function getResourcePlan($startPeriod, $length, $projectId, $teamId) {
+		return $this->_getResourceAllocation(self::TABLE_ALLOCATION, $startPeriod, $length, $projectId, $teamId);
 	}
 
 	public function addProject() {
