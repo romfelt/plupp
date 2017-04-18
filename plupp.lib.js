@@ -101,27 +101,6 @@ Plupp = {
 	getAvailable:function(startPeriod, length, filter, id) {
 		return this._getIntervalWithOptionalFilterId("available", startPeriod, length, filter, id);
 	},
-/* TODO clean up
-	getTeamsPlan:function(startPeriod, length) {
-		return new PluppRequest("teamsplan/" + startPeriod + "/" + length);
-	},
-	getTeamPlans:function(teamId, startPeriod, length) {
-		return new PluppRequest("teamplans/" + teamId + "/" + startPeriod + "/" + length);
-	},
-
-	setPlan:function(projectId, data) {
-		return new PluppRequest("plan/" + projectId, data);
-	},
-	getPlan:function(projectId, startPeriod, length) {
-		return new PluppRequest("plan/" + startPeriod + "/" + length + "/" + projectId);
-	},
-	getPlans:function(startPeriod, length) {
-		return new PluppRequest("plan/" + startPeriod + "/" + length);
-	},
-	getPlanSum:function(startPeriod, length) {
-		return new PluppRequest("plansum/" + startPeriod + "/" + length);
-	},
-	*/
 	setQuota:function(data) {
 		return new PluppRequest("quota", data);
 	},

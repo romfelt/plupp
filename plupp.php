@@ -99,48 +99,6 @@ class Plupp {
 		return true;
 	}
 
-/* TODO
-	public function setPlan($userId, $projectId, $data, $teamIdKey, $periodKey, $valueKey) {
-		$sql = "INSERT INTO " . self::TABLE_PLAN . " (projectId, teamId, period, value, userId) VALUES";
-		$i = 0;
-		foreach ($data as $k => $v) {
-			if ($i++ > 0) {
-				$sql .= ',';
-			}
-			$sql .= " ('$projectId', '$v[$teamIdKey]', '$v[$periodKey]', '$v[$valueKey]', '$userId')";
-		}
-
-		return $this->_setQuery($sql);
-	}
-
-	public function getPlan($startPeriod, $length, $projectId = null) {
-		$sql = '';
-		$endPeriod = $this->_endPeriod($startPeriod, $length);
-		if ($projectId === null) {
-			$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
-				   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
-				   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
-				   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
-		}
-		else {
-			$sql = "SELECT p.teamId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
-				   "    SELECT teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE projectId = '$projectId' GROUP BY teamId, period" .
-				   ") r ON p.timestamp = r.latest AND p.teamId = r.teamId AND p.period = r.period " .
-				   "WHERE p.projectId = '$projectId' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.period ASC";
-		}
-		return $this->_getQuery($sql);
-	}
-
-	public function getPlanSum($startPeriod, $length) {
-		$endPeriod = $this->_endPeriod($startPeriod, $length);
-		$sql = "SELECT p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
-			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
-			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
-			   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.period ORDER BY p.period ASC";
-
-		return $this->_getQuery($sql);
-	}
-*/
 	public function setQuota($userId, $data, $projectIdKey, $periodKey, $valueKey) {
 		$sql = "INSERT INTO " . self::TABLE_QUOTA . " (projectId, period, value, userId) VALUES";
 		$i = 0;
@@ -207,27 +165,6 @@ class Plupp {
 		return $this->_getQuery("SELECT id, name FROM " . self::TABLE_TEAM . " WHERE id = '$teamId'");
 	}
 
-/* TODO
-	public function getTeamsPlan($startPeriod, $length) {
-		$endPeriod = $this->_endPeriod($startPeriod, $length);
-		$sql = "SELECT p.teamId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
-			   "    SELECT projectId, teamId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " GROUP BY projectId, teamId, period" .
-			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.teamId = r.teamId AND p.period = r.period " .
-			   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.teamId, p.period ORDER BY p.teamId ASC, p.period ASC";
-
-		return $this->_getQuery($sql);
-	}
-
-	public function getTeamPlans($teamId, $startPeriod, $length) {
-		$endPeriod = $this->_endPeriod($startPeriod, $length);
-		$sql = "SELECT p.projectId AS id, p.period AS period, p.value AS value FROM " . self::TABLE_PLAN . " p INNER JOIN (" .
-			   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_PLAN . " WHERE teamId = '$teamId' GROUP BY projectId, period" .
-			   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-			   "WHERE p.teamId = '$teamId' AND p.period >= '$startPeriod' AND p.period < '$endPeriod' ORDER BY p.projectId ASC, p.period ASC";
-
-		return $this->_getQuery($sql);
-	}
-*/
 	private function _createResourceDataTable($name) {
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
 			   "    SELECT a.resourceId AS resourceId, a.teamId AS teamId, a.type AS type, a.departmentId AS departmentId FROM " . self::TABLE_RESOURCE_DATA . " a INNER JOIN ( " .
