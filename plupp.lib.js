@@ -29,10 +29,10 @@ function PluppRequest(service, data) {
 	this.run = function() {
 		var jqxhr;
 		if (typeof(self.data) === 'undefined') {
-			jqxhr = $.get("api.php/" + self.service);
+			jqxhr = $.get("/plupp/api.php/" + self.service);
 		}
 		else {
-			jqxhr = $.post("api.php/" + self.service, self.data);
+			jqxhr = $.post("/plupp/api.php/" + self.service, self.data);
 		}
 
 		jqxhr.done(self.onSuccess)
