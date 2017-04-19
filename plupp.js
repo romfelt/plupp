@@ -191,7 +191,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 				t.addNameHeader(projects.reply.data, 'projectId');
 				t.addDataSection(resc.reply.data, alloc.reply.data, 'projectId', 'editable');
 				t.addSum();
-				t.addDataRow('Quota', quotas.reply.data, 'projectId', 'header');
+				t.addDataRow('Quota', quotas.reply.data, 'id', 'header');
 				t.addDelta(); // delta = available - sum
 				t.build(true, $('#' + self.tableContainerId), self.project);
 			}
