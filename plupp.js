@@ -1,19 +1,3 @@
-// TODO:
-// - Quota => Budget (resource)
-// - Team => Discipline
-// - add notification that user has to login
-// - allocation, remove user of plans API... then remove API?
-// - project priority, sort on that
-// - call-stack, being able to click back to previous view(s)
-// - clean up plupp.lib.js to user same request helper
-// - add last X updated timestamp/user to each view
-// - allow browse history byt setting a timestamp
-// - add tag support: i.e. Evander TG2 @ 2017-01-23 12:02:11
-// - add new and update resources
-// - being able to locally enable disable projects (and on server)
-// - being able to locally shift project requests in time to simulate
-// - remove APIs teamsPlan, teamPlans
-// - combine quota/quotaSum
 
 $.fn.center = function() {
 	this.css('position', 'fixed');
