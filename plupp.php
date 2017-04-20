@@ -10,7 +10,7 @@
 class Plupp {
 	const TABLE_QUOTA = 'quota';
 	const TABLE_TEAM = 'team';
-	const TABLE_PLAN = 'plan2';
+	const TABLE_PLAN = 'plan';
 	const TABLE_PROJECT = 'project';
 	const TABLE_USER = 'user';
 	const TABLE_SESSION = 'session';
@@ -19,6 +19,7 @@ class Plupp {
 	const TABLE_AVAILABLE = 'available';
 	const TABLE_DEPARTMENT = 'department';
 	const TABLE_ALLOCATION = 'allocation';
+	const TABLE_LABEL = 'label';
 
 	private $db = null;
 	private $error = null; 
@@ -99,6 +100,37 @@ class Plupp {
 		return true;
 	}
 
+	public function getHistory($startTimestamp, $entries, $view, $id) {
+		$viewMap = array(
+			'plan' => array(self::TABLE_PLAN, 'projectId'),
+			'quota' => array(self::TABLE_QUOTA, 'projectId'),
+			'allocation' => array(self::TABLE_ALLOCATION, 'projectId'),
+			'available' => array(self::TABLE_AVAILABLE, 'projectId')
+		);
+		$table = array_key_exists($view, $viewMap) ? $viewMap[$view][0] : null;
+		$selectKey = array_key_exists($view, $viewMap) ? $viewMap[$view][1] : null;
+
+		if ($table === null) {
+			// TODO should it be possible to get changes for all tables when no filter is provided?
+			return array(false, 'no filter provided');
+		}
+
+		// check that start timestamp is correct format else set in future
+		$dt = DateTime::createFromFormat("Y-m-d H:i:s", $startTimestamp);
+		if ($dt !== true || array_sum($dt->getLastErrors())) {
+			$startPeriod = '9999-09-09';
+		}
+
+		$sql = "SELECT t.userId AS userId, u.username AS username, t.timestamp AS timestamp FROM $table t " .
+			   "	INNER JOIN user u ON t.userId = u.id " .
+			   "WHERE t.timestamp <= '$startTimestamp' " .
+			   "GROUP BY t.userId, t.timestamp " .
+			   "ORDER BY t.timestamp DESC " .
+			   "LIMIT $entries";
+
+		return $this->_getQuery($sql);
+	}
+
 	public function setQuota($userId, $data, $projectIdKey, $periodKey, $valueKey) {
 		$sql = "INSERT INTO " . self::TABLE_QUOTA . " (projectId, period, value, userId) VALUES";
 		$i = 0;
@@ -132,7 +164,7 @@ class Plupp {
 				$sql = "SELECT p.projectId AS id, p.period AS period, SUM(p.value) AS value FROM " . self::TABLE_QUOTA . " p INNER JOIN (" .
 					   "    SELECT projectId, period, MAX(timestamp) AS latest FROM " . self::TABLE_QUOTA . " GROUP BY projectId, period" .
 					   ") r ON p.timestamp = r.latest AND p.projectId = r.projectId AND p.period = r.period " .
-					   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";	
+					   "WHERE p.period >= '$startPeriod' AND p.period < '$endPeriod' GROUP BY p.projectId, p.period ORDER BY p.projectId ASC, p.period ASC";
 			}
 			else {
 				// get sum of quota for a specific projects
@@ -229,7 +261,7 @@ class Plupp {
 			$sql = "SELECT a.period AS period, SUM(a.value) AS value FROM $available a " .
 				   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 				   "GROUP BY a.period " .
-				   "ORDER BY a.period ASC";			
+				   "ORDER BY a.period ASC";
 		}
 		else {
 			if ($id === null) {
@@ -237,7 +269,7 @@ class Plupp {
 					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 					   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 					   "GROUP BY r.$key, a.period " .
-					   "ORDER BY r.teamId ASC, a.period ASC";					
+					   "ORDER BY r.teamId ASC, a.period ASC";
 			}
 			else {
 				$sql = "SELECT r.$key AS id, a.period AS period, SUM(a.value) AS value FROM $available a " .
@@ -312,6 +344,12 @@ class Plupp {
 		return $this->_setAllocation(self::TABLE_PLAN, $userId, $data, $resourceIdKey, $periodKey, $valueKey, $projectIdKey);
 	}
 
+	// copy latest plan to allocation for a specific period
+	public function makeAllocationBaseline($period, $id) {
+//		insert into table_2 (itemid,location1) 
+//			select itemid,quantity from table_1 where locationid=1
+	}
+
 /*
 
  *: total allocation over time
@@ -347,7 +385,7 @@ class Plupp {
 			$sql = "SELECT a.period AS period, SUM(a.value) AS value FROM $allocation a " .
 				   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 				   "GROUP BY a.period " .
-				   "ORDER BY a.period ASC";			
+				   "ORDER BY a.period ASC";
 		}
 		else {
 			// prepare temporary table
@@ -361,14 +399,14 @@ class Plupp {
 				$sql = "SELECT r.resourceId AS id, a.projectId AS projectId, a.period AS period, a.value AS value FROM $allocation a " .
 					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 					   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
-					   "ORDER BY r.resourceId ASC, a.period ASC";					
+					   "ORDER BY r.resourceId ASC, a.period ASC";
 			}
 			else if ($id === null) {
 				$sql = "SELECT $selectKey AS id, a.period AS period, SUM(a.value) AS value FROM $allocation a " .
 					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 					   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 					   "GROUP BY $selectKey, a.period " .
-					   "ORDER BY $selectKey ASC, a.period ASC";					
+					   "ORDER BY $selectKey ASC, a.period ASC";
 			}
 			else {
 				if ($group === null) {
@@ -376,14 +414,14 @@ class Plupp {
 						   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 						   "WHERE $selectKey = '$id' AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 						   "GROUP BY $selectKey, a.period " .
-						   "ORDER BY $selectKey ASC, a.period ASC";					
+						   "ORDER BY $selectKey ASC, a.period ASC";
 				}
 				else {
 					$sql = "SELECT $groupKey AS id, a.period AS period, SUM(a.value) AS value FROM $allocation a " .
 						   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 						   "WHERE $selectKey = '$id' AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 						   "GROUP BY $groupKey, a.period " .
-						   "ORDER BY $groupKey ASC, a.period ASC";					
+						   "ORDER BY $groupKey ASC, a.period ASC";
 				}
 			}
 		}

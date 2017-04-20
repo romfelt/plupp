@@ -31,6 +31,7 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetResource::DESCRIPTION . '<br>';
 	echo SetResourceAvailability::DESCRIPTION . '<br>';
 	echo GetResourceAvailability::DESCRIPTION . '<br>';
+	echo GetHistory::DESCRIPTION . '<br>';
 	echo PostLogin::DESCRIPTION . '<br>';
 	echo GetSession::DESCRIPTION . '<br>';
 	echo GetLogout::DESCRIPTION . '<br>';
@@ -69,6 +70,7 @@ else if ($method == 'GET') {
 		case GetResource::API: $obj = new GetResource($request); break;
 		case GetResourceAvailability::API: $obj = new GetResourceAvailability($request); break;
 		case GetQuota::API: $obj = new GetQuota($request); break;
+		case GetHistory::API: $obj = new GetHistory($request); break;
 		case GetSession::API: $obj = new GetSession($request); break;
 		case GetLogout::API: $obj = new GetLogout($request); break;
 	}
@@ -238,6 +240,25 @@ class ServiceEndPointFilterId extends ServiceEndPoint {
 			$this->optionalFilter = $this->request[1];
 			$this->optionalId = $this->request[2];
 		}
+	}
+}
+
+class GetHistory extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /history/{timestamp}/{entries}/{filter}/{id}, get number of history change {entries} starting from a given {timestamp} on form "YYYY-MM-DD HH:MM:SS". {filter} specifies which view to get changes for and is one of: allocation, quota, plan, team or resource. {id} is optional, leaving it blank will return all changes for all in that view.';
+	const API = 'history';
+
+	public function __construct($request) {
+		parent::__construct($request, 3);
+	}
+
+	protected function service() {
+		$startTimestamp = $this->availableArgs >= 1 ? $this->request[1] : null;
+		$entries = $this->availableArgs >= 2 ? $this->request[2] : null;
+		$filter = $this->availableArgs >= 3 ? $this->request[3] : null;
+		$id = $this->availableArgs >= 4 ? $this->request[4] : null;
+
+		list($rc, $this->reply) = $this->plupp->getHistory($startTimestamp, $entries, $filter, $id);
+		return $rc === true;
 	}
 }
 

@@ -56,6 +56,9 @@ Plupp = {
 	getSession:function() {
 		return new PluppRequest("session");
 	},
+	getHistory:function(timestamp, entries, filter, id) {
+		return this._getIntervalWithOptionalFilterId("history", timestamp, entries, filter, id);
+	},
 	getProject:function(projectId) {
 		return new PluppRequest("project/" + projectId);
 	},
