@@ -95,35 +95,46 @@ class Plupp {
 	// @TODO add debug flag to enable this
 	private function _error($sql) {
 		if ($this->db->errno) {
-		    return 'MySQL error (' . $this->db->errno . ') ' . $this->db->error . ', caused by call: ' . $sql;
+		    return 'MySQL error (' . $this->db->errno . ') ' . $this->db->error . '. Query: \'' . $sql . '\'';
 		}
 		return true;
 	}
 
 	public function getHistory($startTimestamp, $entries, $view, $id) {
 		$viewMap = array(
-			'plan' => array(self::TABLE_PLAN, 'projectId'),
-			'quota' => array(self::TABLE_QUOTA, 'projectId'),
-			'allocation' => array(self::TABLE_ALLOCATION, 'projectId'),
-			'available' => array(self::TABLE_AVAILABLE, 'projectId')
+			'plan' => array(self::TABLE_PLAN, 't.projectId'),
+			'quota' => array(self::TABLE_QUOTA, 't.projectId'),
+			'allocation' => array(self::TABLE_ALLOCATION, 't.period'),
+			'available' => array(self::TABLE_AVAILABLE, 't.projectId')
 		);
-		$table = array_key_exists($view, $viewMap) ? $viewMap[$view][0] : null;
-		$selectKey = array_key_exists($view, $viewMap) ? $viewMap[$view][1] : null;
+
+		$table = null;
+		$selectKey = null;
+		if (array_key_exists($view, $viewMap)) {
+			$table = $viewMap[$view][0];
+			$selectKey = $viewMap[$view][1];;
+		}
 
 		if ($table === null) {
 			// TODO should it be possible to get changes for all tables when no filter is provided?
+			// Use UNION
 			return array(false, 'no filter provided');
 		}
 
 		// check that start timestamp is correct format else set in future
-		$dt = DateTime::createFromFormat("Y-m-d H:i:s", $startTimestamp);
+		$dt = DateTime::createFromFormat('Y-m-d H:i:s', $startTimestamp);
 		if ($dt !== true || array_sum($dt->getLastErrors())) {
 			$startPeriod = '9999-09-09';
 		}
 
+		$select = null;
+		if ($selectKey !== null && $id !== null) {
+			$select = "AND $selectKey = $id";
+		}
+
 		$sql = "SELECT t.userId AS userId, u.username AS username, t.timestamp AS timestamp FROM $table t " .
 			   "	INNER JOIN user u ON t.userId = u.id " .
-			   "WHERE t.timestamp <= '$startTimestamp' " .
+			   "WHERE t.timestamp <= '$startTimestamp' $select " .
 			   "GROUP BY t.userId, t.timestamp " .
 			   "ORDER BY t.timestamp DESC " .
 			   "LIMIT $entries";
@@ -344,26 +355,52 @@ class Plupp {
 		return $this->_setAllocation(self::TABLE_PLAN, $userId, $data, $resourceIdKey, $periodKey, $valueKey, $projectIdKey);
 	}
 
-	// copy latest plan to allocation for a specific period
-	public function makeAllocationBaseline($period, $id) {
-//		insert into table_2 (itemid,location1) 
-//			select itemid,quantity from table_1 where locationid=1
+	// copy current plan to allocation for a specific period
+	public function setAllocationBaseline($period, $id) {
+		// Done in 2 steps with userId set to the user doing the override/copy and change timestamp to now
+
+		// 1. override all (resourceId, projectId, period) tuples in allocation table with a value != 0 setting them to 0
+
+		$allocation = 'allocationLatest';
+		$arr = $this->_createAllocationTable(self::TABLE_ALLOCATION, $allocation, $period, 1);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
+
+		$sql = "INSERT INTO " . self::TABLE_ALLOCATION . " (resourceId, projectId, period, value, userId) " .
+			   "SELECT resourceId, projectId, period, 0 AS value, $id AS userId FROM $allocation WHERE value <> 0 AND period = '$period'";
+		$arr = $this->_setQuery($sql);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
+
+		// 2. copy new values from lastest plan to allocation table
+
+		$plan = 'planLatest';
+		$arr = $this->_createAllocationTable(self::TABLE_PLAN, $plan, $period, 1);
+		if ($arr[0] !== true) {
+			return $arr;
+		}
+
+		$sql = "INSERT INTO " . self::TABLE_ALLOCATION . " (resourceId, projectId, period, value, userId) " .
+			   "SELECT resourceId, projectId, period, value, $id AS userId FROM $plan WHERE period = '$period'";
+
+		return $this->_setQuery($sql);
 	}
 
-/*
+	/*
 
- *: total allocation over time
- project: list of projects and allocations over time
- project+id: list of teams for a specific project over time
- team: list of teams and allocations over time
- team+id: list of projects a team is allocated to
- resource: list of resources allocation over time
- resource+id: list of projects a resource is allocated to
+	 *: total allocation over time
+	 project: list of projects and allocations over time
+	 project+id: list of teams for a specific project over time
+	 team: list of teams and allocations over time
+	 team+id: list of projects a team is allocated to
+	 resource: list of resources allocation over time
+	 resource+id: list of projects a resource is allocated to
 
- project+id+teamId = return resources allocation
+	 project+id+teamId = return resources allocation
 
- */
-
+	 */
 	private function _getAllocation($table, $startPeriod, $length, $filter, $id, $group) {
 		$resource = 'resourceLatest';
 		$allocation = 'allocationLatest';
@@ -396,10 +433,9 @@ class Plupp {
 
 			// special case with raw access, no aggregation and no filtering.
 			if ($selectKey === 'raw') {
-				$sql = "SELECT r.resourceId AS id, a.projectId AS projectId, a.period AS period, a.value AS value FROM $allocation a " .
-					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
+				$sql = "SELECT a.resourceId AS id, a.projectId AS projectId, a.period AS period, a.value AS value FROM $allocation a " .
 					   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
-					   "ORDER BY r.resourceId ASC, a.period ASC";
+					   "ORDER BY a.resourceId ASC, a.period ASC";
 			}
 			else if ($id === null) {
 				$sql = "SELECT $selectKey AS id, a.period AS period, SUM(a.value) AS value FROM $allocation a " .

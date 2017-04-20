@@ -20,6 +20,7 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetPlan::DESCRIPTION . '<br>';
 	echo GetResourcePlan::DESCRIPTION . '<br>';
 	echo SetAllocation::DESCRIPTION . '<br>';
+	echo SetAllocationBaseline::DESCRIPTION . '<br>';
 	echo GetAllocation::DESCRIPTION . '<br>';
 	echo GetResourceAllocation::DESCRIPTION . '<br>';
 	echo SetQuota::DESCRIPTION . '<br>';
@@ -61,6 +62,7 @@ else if ($method == 'GET') {
 	switch ($cmd) {
 		case GetPlan::API: $obj = new GetPlan($request); break;
 		case GetResourcePlan::API: $obj = new GetResourcePlan($request); break;
+		case SetAllocationBaseline::API: $obj = new SetAllocationBaseline($request); break;
 		case GetAllocation::API: $obj = new GetAllocation($request); break;
 		case GetResourceAllocation::API: $obj = new GetResourceAllocation($request); break;
 		case GetDepartment::API: $obj = new GetDepartment($request); break;
@@ -277,7 +279,6 @@ class GetResourceAllocation extends ServiceEndPoint {
 	const DESCRIPTION = 'GET /resourceallocation/{startPeriod}/{length}/{projectId}/{teamId}, get resources from a specific team allocated to a certain project within a given time intervall.';
 	const API = 'resourceallocation';
 
-
 	public function __construct($request) {
 		parent::__construct($request, 4);
 	}
@@ -304,6 +305,23 @@ class SetAllocation extends ServiceEndPoint {
 	protected function service() {
 		$data = $_POST['data'];
 		list($rc, $this->reply) = $this->plupp->setAllocation($this->session->getUserId(), $data, 'id', 'period', 'value', 'projectId');
+		return $rc === true;
+	}
+}
+
+class SetAllocationBaseline extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /baseline/{period}, set resource allocation baseline for a specific {period} based on current project resource plans, i.e. make a copy of current plans for a period to allocation.';
+	const API = 'baseline';
+
+	protected $anonymous = false;
+
+	public function __construct($request) {
+		parent::__construct($request, 1);
+	}
+
+	protected function service() {
+		$period = $this->request[1];
+		list($rc, $this->reply) = $this->plupp->SetAllocationBaseline($period, $this->session->getUserId());
 		return $rc === true;
 	}
 }
