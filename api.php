@@ -32,6 +32,8 @@ if (!isset($method) || $request == null || !isset($request[0])) {
 	echo GetResource::DESCRIPTION . '<br>';
 	echo SetResourceAvailability::DESCRIPTION . '<br>';
 	echo GetResourceAvailability::DESCRIPTION . '<br>';
+	echo SetLabel::DESCRIPTION . '<br>';
+	echo GetLabel::DESCRIPTION . '<br>';
 	echo GetHistory::DESCRIPTION . '<br>';
 	echo PostLogin::DESCRIPTION . '<br>';
 	echo GetSession::DESCRIPTION . '<br>';
@@ -51,6 +53,7 @@ $obj = null;
 
 if ($method == 'POST') {
 	switch ($cmd) {
+		case SetLabel::API: $obj = new SetLabel($request); break;
 		case SetPlan::API: $obj = new SetPlan($request); break;
 		case SetAllocation::API: $obj = new SetAllocation($request); break;
 		case SetQuota::API: $obj = new SetQuota($request); break;
@@ -72,6 +75,7 @@ else if ($method == 'GET') {
 		case GetResource::API: $obj = new GetResource($request); break;
 		case GetResourceAvailability::API: $obj = new GetResourceAvailability($request); break;
 		case GetQuota::API: $obj = new GetQuota($request); break;
+		case GetLabel::API: $obj = new GetLabel($request); break;
 		case GetHistory::API: $obj = new GetHistory($request); break;
 		case GetSession::API: $obj = new GetSession($request); break;
 		case GetLogout::API: $obj = new GetLogout($request); break;
@@ -245,8 +249,44 @@ class ServiceEndPointFilterId extends ServiceEndPoint {
 	}
 }
 
+class SetLabel extends ServiceEndPoint {
+	const DESCRIPTION = 'POST /label, set new label according to JSON data payload format { view, id, label } where id is the id used within the given view, for instance projectId when viewing a project resource plan.';
+	const API = 'label';
+
+	protected $anonymous = false;
+
+	public function __construct($request) {
+		parent::__construct($request, 3);
+	}
+
+	protected function service() {
+		$view = $this->availableArgs >= 3 ? $this->request[3] : null;
+		$id = $this->availableArgs >= 4 ? $this->request[4] : null;
+
+		list($rc, $this->reply) = $this->plupp->setLabel($label, $view, $id, $this->session->getUserId());
+		return $rc === true;
+	}
+}
+
+class GetLabel extends ServiceEndPoint {
+	const DESCRIPTION = 'GET /label/{timestamp}/{entries}/{view}/{id}, get {entries} number of labels starting from a given {timestamp} on form "YYYY-MM-DD HH:MM:SS". {view} specifies which view to get changes for and is one of: allocation, quota, plan, team or resource. {id} is optional, leaving it blank will return all changes for all in that view.';
+	const API = 'label';
+
+	public function __construct($request) {
+		parent::__construct($request, 3);
+	}
+
+	protected function service() {
+		$view = $this->availableArgs >= 3 ? $this->request[3] : null;
+		$id = $this->availableArgs >= 4 ? $this->request[4] : null;
+
+		list($rc, $this->reply) = $this->plupp->getLabel($this->request[1], $this->request[2], $view, $id);
+		return $rc === true;
+	}
+}
+
 class GetHistory extends ServiceEndPoint {
-	const DESCRIPTION = 'GET /history/{timestamp}/{entries}/{filter}/{id}, get number of history change {entries} starting from a given {timestamp} on form "YYYY-MM-DD HH:MM:SS". {filter} specifies which view to get changes for and is one of: allocation, quota, plan, team or resource. {id} is optional, leaving it blank will return all changes for all in that view.';
+	const DESCRIPTION = 'GET /history/{timestamp}/{entries}/{filter}/{id}, get {entries} number of history changes starting from a given {timestamp} on form "YYYY-MM-DD HH:MM:SS". {view} specifies which view to get changes for and is one of: allocation, quota, plan, team or resource. {id} is optional, leaving it blank will return all changes for all in that view.';
 	const API = 'history';
 
 	public function __construct($request) {
@@ -254,12 +294,10 @@ class GetHistory extends ServiceEndPoint {
 	}
 
 	protected function service() {
-		$startTimestamp = $this->availableArgs >= 1 ? $this->request[1] : null;
-		$entries = $this->availableArgs >= 2 ? $this->request[2] : null;
-		$filter = $this->availableArgs >= 3 ? $this->request[3] : null;
+		$view = $this->availableArgs >= 3 ? $this->request[3] : null;
 		$id = $this->availableArgs >= 4 ? $this->request[4] : null;
 
-		list($rc, $this->reply) = $this->plupp->getHistory($startTimestamp, $entries, $filter, $id);
+		list($rc, $this->reply) = $this->plupp->getHistory($this->request[1], $this->request[2], $view, $id);
 		return $rc === true;
 	}
 }
@@ -321,7 +359,7 @@ class SetAllocationBaseline extends ServiceEndPoint {
 
 	protected function service() {
 		$period = $this->request[1];
-		list($rc, $this->reply) = $this->plupp->SetAllocationBaseline($period, $this->session->getUserId());
+		list($rc, $this->reply) = $this->plupp->setAllocationBaseline($period, $this->session->getUserId());
 		return $rc === true;
 	}
 }

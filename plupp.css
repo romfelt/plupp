@@ -65,7 +65,13 @@ h1 {
 	font-weight: bold;
 	font-size: 1.4em;	
 	margin-top: 0em;
-	margin-bottom: 0.2em;
+	margin-bottom: 0.4em;
+}
+
+.last-change {
+	font-size: 0.6em;
+	font-style: italic;
+	font-weight: normal;
 }
 
 #table-container table {

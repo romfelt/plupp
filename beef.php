@@ -2,7 +2,7 @@
 	<head>
 		<title>PLUPP - Steakes on the grill</title>
 		<meta charset="utf-8">
-		<link rel="shortcut icon" href="../plupp.png" />
+		<link rel="shortcut icon" href="plupp.png" />
 
 		<style>
 			body {
@@ -48,10 +48,10 @@
 
 		</style>
 
-		<script src="../jquery-3.1.1.min.js"></script>
-		<script src="../masonry.min.js"></script>
-		<script src="../moment.min.js"></script>
-		<script src="../plupp.lib.js"></script>
+		<script src="jquery-3.1.1.min.js"></script>
+		<script src="masonry.min.js"></script>
+		<script src="moment.min.js"></script>
+		<script src="plupp.lib.js"></script>
 		<script>
 			function onResize() {
 

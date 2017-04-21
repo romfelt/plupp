@@ -15,7 +15,7 @@
 //
 function PluppTable(tableTitle, options) {
 	var self = this; // keep reference to this object to be used independent of call context
-	var defaults = {'tableId': 'pluppTable'};
+	var defaults = {'tableId': 'pluppTable', 'updateLastChange': {'args': []}};
 
 	this.tableTitle = tableTitle;
 	this.length = 0; // number of data columns, set by header functions
@@ -182,6 +182,13 @@ function PluppTable(tableTitle, options) {
 		self.updateDeltas();
 	}
 
+	this.updateLastChange = function() {
+		// is there a callback to update last changed date?
+		if (typeof self.settings.updateLastChange.callback === 'function') {
+			self.settings.updateLastChange.callback(self.settings.updateLastChange.args);
+		}
+	}
+
 	this.addCells = function(container, data, classes) {
 		$.each(data, function(i, v) {
 			container.append($('<td/>')
@@ -247,9 +254,10 @@ function PluppTable(tableTitle, options) {
 		});
 
 		// erase existing elements in container and add table
-		container.html('<h1>' + self.tableTitle + '</h1>');
+		container.html('<h1>' + self.tableTitle + '<br><span class="last-change"></span></h1>');
 		container.append(table);
 		self.updateTable();
+		self.updateLastChange();
 
 		if (editable === true) {
 			$('#buttons').hide();
@@ -355,6 +363,7 @@ function PluppTable(tableTitle, options) {
 					$(e).data('value', $(e).text()).removeClass('cell-dirty');
 				});
 				$('#buttons').fadeOut();
+				self.updateLastChange();
 			}
 		})
 		.fail(function() {

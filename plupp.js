@@ -174,6 +174,29 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		console.log("something went wrong: " + e);
 	}
 
+	this.updateLastChange = function(args) {
+		var history;
+		if (typeof args[0] === 'string') {
+			if (args[1] === 'string' || args[1] === 'number') {
+				history = Plupp.getHistory('9999-99-99', 1, args[0], args[1]);
+			}
+			else {
+				history = Plupp.getHistory('9999-99-99', 1, args[0]);
+			}
+		}
+
+		$.when(
+			history.run()
+		)
+		.then(function() {
+			var l = history.reply.data[0];
+			if (l !== 'undefined') {
+				$('.last-change').html('Last change by ' + l.username + ' @ ' + l.timestamp);
+			}
+		})
+		.fail();		
+	}
+
 	this.allocation = function() {
 		self.view = self.allocation;
 		self.title = 'Project Allocation';
@@ -187,13 +210,14 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'request': 'allocation', 'postData': {'period': self.startPeriod}});
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['allocation']}, 'request': 'allocation', 'postData': {'period': self.startPeriod}});
 				t.addNameHeader(projects.reply.data, 'projectId');
 				t.addDataSection(resc.reply.data, alloc.reply.data, 'projectId', 'editable');
 				t.addSum();
 				t.addDataRow('Quota', quotas.reply.data, 'id', 'header');
 				t.addDelta(); // delta = available - sum
 				t.build(true, $('#' + self.tableContainerId), self.project);
+				//self.lastChange();
 			}
 			else {
 				// TODO self._chartStackedArea('project', projects, quotas, alloc, 'Requested');
@@ -215,7 +239,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'request': 'quotas'});
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['quota']}, 'request': 'quotas'});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(projects.reply.data, quotas.reply.data, 'period', 'editable');
 				t.addSum();
@@ -244,7 +268,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title);
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['plan']}});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(projects.reply.data, alloc.reply.data, 'period', 'constant');
 				t.addSum();
@@ -279,7 +303,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 
 			if (self.mode == 'table') {
 				// TODO should this be plan or should it be set allocation?
-				var t = new PluppTable(self.title, {'request': 'plan', 'requestId': projectId});
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['project', projectId]}, 'request': 'plan', 'requestId': projectId});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(teams.reply.data, alloc.reply.data, 'period', 'constant', projectId);
 				t.addSum();
@@ -314,8 +338,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 			}
 
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'request': 'plan', 'postData': {'projectId': projectId}});
-//				var t = new PluppTable(self.title, {'request': 'plan', 'requestId': projectId});
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': []}, 'request': 'plan', 'postData': {'projectId': projectId}});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(resc.reply.data, alloc.reply.data, 'period', 'editable', projectId);
 				t.addSum();
@@ -342,7 +365,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title);
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': []}});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(teams.reply.data, alloc.reply.data, 'period', 'constant');
 				t.addSum();
@@ -369,7 +392,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title);
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['available']}});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(teams.reply.data, avail.reply.data, 'period', 'constant');
 				t.addSum();
@@ -396,7 +419,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title);
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': []}});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(depts.reply.data, avail.reply.data, 'period', 'constant');
 				t.addSum();
@@ -428,7 +451,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 				self.title += dept.reply.data[0].name;
 			}
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'request': 'resourceavailability', 'requestId': 666}); // TODO fix id
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': []}, 'request': 'resourceavailability', 'requestId': 666}); // TODO fix id
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(resc.reply.data, avail.reply.data, 'period', 'editable');
 				t.addSum();
@@ -461,7 +484,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 			}
 
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title);
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': []}});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(projects.reply.data, alloc.reply.data, 'period', 'constant');
 				t.addSum();
@@ -495,7 +518,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 				self.title += resc.reply.data[0].name;
 			}
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'request': 'resourceavailability', 'requestId': 666}); // TODO fix id
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': []}, 'request': 'resourceavailability', 'requestId': 666}); // TODO fix id
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(projects.reply.data, alloc.reply.data, 'period', 'constant');
 				t.addSum();

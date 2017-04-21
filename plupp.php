@@ -100,6 +100,42 @@ class Plupp {
 		return true;
 	}
 
+	public function setLabel($label, $view, $id, $userId) {
+		// TODO make labels unique?
+		$sql = "INSERT INTO " . self::TABLE_LABEL . " (label, view, id, userId) VALUES ($label, $view, $id, $userId)";
+		return $this->_setQuery($sql);
+	}
+
+	// TODO FIXME!
+	// check that start timestamp is correct format else set in future
+	private function _checkTimestampFormat($timestamp) {
+		$dt = DateTime::createFromFormat('Y-m-d H:i:s', $timestamp);
+		if ($dt !== true || array_sum($dt->getLastErrors())) {
+			return '9999-09-09 09:09:09';
+		}
+		return $timestamp;
+	}
+
+	public function getLabel($startTimestamp, $entries, $view, $id) {
+		$startTimestamp = $this->_checkTimestampFormat($startTimestamp);
+
+		$select = "";
+		if ($view !== null) {
+			$select .= "AND view = '$view'";
+			if ($id !== null) {
+				$select .= " AND id = '$id'";
+			}
+		}
+
+		$sql = "SELECT t.userId AS userId, u.username AS username, t.label AS label, t.timestamp AS timestamp FROM " . self::TABLE_LABEL . " t " .
+			   "	INNER JOIN user u ON t.userId = u.id " .
+			   "WHERE t.timestamp <= '$startTimestamp' $select " .
+			   "ORDER BY t.timestamp DESC " .
+			   "LIMIT $entries";
+
+		return $this->_getQuery($sql);
+	}
+
 	public function getHistory($startTimestamp, $entries, $view, $id) {
 		$viewMap = array(
 			'plan' => array(self::TABLE_PLAN, 't.projectId'),
@@ -118,18 +154,14 @@ class Plupp {
 		if ($table === null) {
 			// TODO should it be possible to get changes for all tables when no filter is provided?
 			// Use UNION
-			return array(false, 'no filter provided');
+			return array(false, 'no view provided');
 		}
 
-		// check that start timestamp is correct format else set in future
-		$dt = DateTime::createFromFormat('Y-m-d H:i:s', $startTimestamp);
-		if ($dt !== true || array_sum($dt->getLastErrors())) {
-			$startPeriod = '9999-09-09';
-		}
+		$startTimestamp = $this->_checkTimestampFormat($startTimestamp);
 
 		$select = null;
 		if ($selectKey !== null && $id !== null) {
-			$select = "AND $selectKey = $id";
+			$select = "AND $selectKey = '$id'";
 		}
 
 		$sql = "SELECT t.userId AS userId, u.username AS username, t.timestamp AS timestamp FROM $table t " .
@@ -139,6 +171,7 @@ class Plupp {
 			   "ORDER BY t.timestamp DESC " .
 			   "LIMIT $entries";
 
+		//echo "<b>SQL: $sql</b><p>";
 		return $this->_getQuery($sql);
 	}
 

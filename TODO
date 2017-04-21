@@ -12,3 +12,4 @@ TODO
 - being able to locally enable disable projects (and on server)
 - being able to locally shift project requests in time to simulate
 - add notification that user has to login
+- on server side, add checks for data input and prevent SQL injection
