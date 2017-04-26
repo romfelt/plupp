@@ -239,7 +239,7 @@ function PluppTable(tableTitle, options) {
 				self.addCells(tr, obj.data, 'cell-constant');
 			}
 			else if (obj.type == 'header') {
-				self.addCells(tr, obj.data, 'cell-header');
+				self.addCells(tr, obj.data, 'cell-constant-header');
 			}
 			else if (obj.type == 'sum') {
 				self.addCells(tr, new Array(obj.columns), 'cell-sum');

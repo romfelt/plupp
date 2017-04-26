@@ -1,7 +1,7 @@
 body {
 	margin: 0;
 	border: 0;
-	font-family: sans-serif;
+	font-family: Arial, sans-serif;
 	font-size: 13px;
 }
 
@@ -100,6 +100,7 @@ h1 {
 }
 
 .cell-title-header {
+	font-family: "Arial Narrow", Arial, sans-serif;
 	text-align: center;;
 	font-weight: bold;
 /*
@@ -111,15 +112,19 @@ h1 {
 }
 
 .cell-header {
-/*	white-space: nowrap; */
+	font-family: "Arial Narrow", Arial, sans-serif;
 	font-weight: bold;
+}
+
+.cell-constant-header {
+	font-weight: bold;
+}
+
+.cell-constant {
 }
 
 .cell-clickable {
 	text-decoration: underline;
-}
-
-.cell-constant {
 }
 
 .cell-delta {
