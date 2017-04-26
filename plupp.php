@@ -313,14 +313,14 @@ class Plupp {
 					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 					   "WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 					   "GROUP BY r.$key, a.period " .
-					   "ORDER BY r.teamId ASC, a.period ASC";
+					   "ORDER BY r.$key ASC, a.period ASC";
 			}
 			else {
 				$sql = "SELECT r.$key AS id, a.period AS period, SUM(a.value) AS value FROM $available a " .
 					   "INNER JOIN $resource r ON r.resourceId = a.resourceId " .
 					   "WHERE r.$key = $id AND a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 					   "GROUP BY r.$key, a.period " .
-					   "ORDER BY r.teamId ASC, a.period ASC";
+					   "ORDER BY r.$key ASC, a.period ASC";
 			}
 		}
 	
