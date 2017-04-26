@@ -244,7 +244,7 @@ class Plupp {
 	private function _createResourceDataTable($name) {
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
 			   "    SELECT a.resourceId AS resourceId, a.teamId AS teamId, a.type AS type, a.departmentId AS departmentId FROM " . self::TABLE_RESOURCE_DATA . " a INNER JOIN ( " .
-			   "        SELECT resourceId, teamId, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " GROUP BY resourceId " .
+			   "        SELECT resourceId, MAX(timestamp) AS latest FROM " . self::TABLE_RESOURCE_DATA . " GROUP BY resourceId " .
 			   "    ) b ON a.resourceId = b.resourceId AND a.timestamp = b.latest " .
 			   ")";
 
@@ -255,7 +255,7 @@ class Plupp {
 		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
 			   "    SELECT a.resourceId AS resourceId, a.period AS period, a.value AS value FROM " . self::TABLE_AVAILABLE . " a INNER JOIN ( " .
-			   "        SELECT resourceId, value, period, MAX(timestamp) AS latest FROM " . self::TABLE_AVAILABLE . " GROUP BY resourceId, period " .
+			   "        SELECT resourceId, period, MAX(timestamp) AS latest FROM " . self::TABLE_AVAILABLE . " GROUP BY resourceId, period " .
 			   "    ) b ON a.resourceId = b.resourceId AND a.period = b.period AND a.timestamp = b.latest " .
 			   "    WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 			   ")";
@@ -268,7 +268,7 @@ class Plupp {
 		$endPeriod = $this->_endPeriod($startPeriod, $length);
 		$sql = "CREATE TEMPORARY TABLE IF NOT EXISTS $name ENGINE = MEMORY AS ( " .
 			   "    SELECT a.projectId AS projectId, a.resourceId AS resourceId, a.period AS period, a.value AS value FROM $table a INNER JOIN ( " .
-			   "        SELECT projectId, resourceId, value, period, MAX(timestamp) AS latest FROM $table GROUP BY projectId, resourceId, period " .
+			   "        SELECT projectId, resourceId, period, MAX(timestamp) AS latest FROM $table GROUP BY projectId, resourceId, period " .
 			   "   ) b ON a.projectId = b.projectId AND a.resourceId = b.resourceId AND a.period = b.period AND a.timestamp = b.latest " .
 			   "   WHERE a.period >= '$startPeriod' AND a.period < '$endPeriod' " .
 			   ")";
