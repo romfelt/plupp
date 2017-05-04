@@ -1,15 +1,15 @@
 TODO
-- rename Quota => Budget (resource)
-- rename Team => Discipline
-- add label support: i.e. Evander TG2 @ 2017-01-23 12:02:11
-- project priority, sort on that
-- call-stack, being able to click back to previous view(s)
-- clean up plupp.lib.js to user same request helper
 - add last X updated timestamp/user to each view
+- add take snapshot to allocation UI
+- add label UI support: i.e. Evander TG2 @ 2017-01-23 12:02:11
+- call-stack, being able to click back to previous view(s)
 - allow browse history byt setting a timestamp
+- project priority, sort on that
+- clean up plupp.lib.js to user same request helper
 - add new and update resources
 - add new and update projects
 - being able to locally enable disable projects (and on server)
 - being able to locally shift project requests in time to simulate
 - add notification that user has to login
 - on server side, add checks for data input and prevent SQL injection
+- add vacation support

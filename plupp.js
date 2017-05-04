@@ -176,13 +176,8 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 
 	this.updateLastChange = function(args) {
 		var history;
-		if (typeof args[0] === 'string') {
-			if (args[1] === 'string' || args[1] === 'number') {
-				history = Plupp.getHistory('9999-99-99', 1, args[0], args[1]);
-			}
-			else {
-				history = Plupp.getHistory('9999-99-99', 1, args[0]);
-			}
+		if (typeof(args[0]) === 'string') {
+			history = Plupp.getHistory('9999-99-99', 1, args[0], args[1]);
 		}
 
 		$.when(
@@ -214,7 +209,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 				t.addNameHeader(projects.reply.data, 'projectId');
 				t.addDataSection(resc.reply.data, alloc.reply.data, 'projectId', 'editable');
 				t.addSum();
-				t.addDataRow('Quota', quotas.reply.data, 'id', 'header');
+				t.addDataRow('Budget', quotas.reply.data, 'id', 'header');
 				t.addDelta(); // delta = available - sum
 				t.build(true, $('#' + self.tableContainerId), self.project);
 				//self.lastChange();
@@ -228,7 +223,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 
 	this.quotas = function() {
 		self.view = self.quotas;
-		self.title = 'Project Quotas';
+		self.title = 'Project Budgets';
 		var projects = Plupp.getProjects();
 		var quotas = Plupp.getQuota(self.startPeriod, self.length, 'project');
 		var alloc = Plupp.getAllocation(self.startPeriod, self.length);
@@ -272,12 +267,12 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(projects.reply.data, alloc.reply.data, 'period', 'constant');
 				t.addSum();
-				t.addDataRow('Quotas', quotas.reply.data, 'period', 'header');
+				t.addDataRow('Budget', quotas.reply.data, 'period', 'header');
 				t.addDelta(); // delta = quota - sum
 				t.build(false, $('#' + self.tableContainerId), self.project);
 			}
 			else {
-				self._chartStackedArea('project', projects, alloc, quotas, 'Quota');
+				self._chartStackedArea('project', projects, alloc, quotas, 'Budget');
 			}
 		})
 		.fail(self.onError);
@@ -303,23 +298,23 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 
 			if (self.mode == 'table') {
 				// TODO should this be plan or should it be set allocation?
-				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['project', projectId]}, 'request': 'plan', 'requestId': projectId});
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['plan', projectId]}, 'request': 'plan', 'requestId': projectId});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(teams.reply.data, alloc.reply.data, 'period', 'constant', projectId);
 				t.addSum();
-				t.addDataRow('Quota', quota.reply.data, 'period', 'header');
+				t.addDataRow('Budget', quota.reply.data, 'period', 'header');
 				t.addDelta(); // delta = quota - sum
 				t.build(false, $('#' + self.tableContainerId), self.projectTeam);
 			}
 			else {
-				self._chartStackedArea('team', teams, alloc, quota, 'Quota');
+				self._chartStackedArea('team', teams, alloc, quota, 'Budget');
 			}
 		})
 		.fail(self.onError);
 	}
 
 	this.projectTeam = function(/*teamId, projectId*/) {
-		self.title = 'Project Team Resource Requests';
+		self.title = 'Project Discipline Resource Requests';
 		self.view = self.projectTeam;
 		self.viewArg = arguments;
 		var teamId = arguments[0];
@@ -355,7 +350,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 
 	this.teams = function() {
 		self.view = self.teams;
-		self.title = 'Team Resource Requests';
+		self.title = 'Discipline Resource Requests';
 		var teams = Plupp.getTeams();
 		var alloc = Plupp.getAllocation(self.startPeriod, self.length, 'team');
 		var avail = Plupp.getAvailable(self.startPeriod, self.length);
@@ -365,7 +360,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': []}});
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['plan']}});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(teams.reply.data, alloc.reply.data, 'period', 'constant');
 				t.addSum();
@@ -396,12 +391,12 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(teams.reply.data, avail.reply.data, 'period', 'constant');
 				t.addSum();
-				t.addDataRow('Quotas', quotas.reply.data, 'period', 'header');
+				t.addDataRow('Budget', quotas.reply.data, 'period', 'header');
 				t.addDelta(); // delta = quota - available
 				t.build(false, $('#' + self.tableContainerId), self.team);
 			}
 			else {
-				self._chartStackedArea('team', teams, avail, quotas, 'Quota');
+				self._chartStackedArea('team', teams, avail, quotas, 'Budget');
 			}
 		})
 		.fail(self.onError);
@@ -419,16 +414,16 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		)
 		.then(function() {
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': []}});
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['plan']}});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(depts.reply.data, avail.reply.data, 'period', 'constant');
 				t.addSum();
-				t.addDataRow('Quotas', quotas.reply.data, 'period', 'header');
+				t.addDataRow('Budget', quotas.reply.data, 'period', 'header');
 				t.addDelta(-2, -1); // delta =  available - quota
 				t.build(false, $('#' + self.tableContainerId), self.department);
 			}
 			else {
-				self._chartStackedArea('department', depts, avail, quotas, 'Quota');
+				self._chartStackedArea('department', depts, avail, quotas, 'Budget');
 			}
 		})
 		.fail(self.onError);
@@ -466,7 +461,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 	}
 
 	this.team = function(/*teamId*/) {
-		self.title = 'Team Resource Requests: ';
+		self.title = 'Discipline Resource Requests: ';
 		self.view = self.team;
 		self.viewArg = arguments;
 		var teamId = arguments[0];
