@@ -1,5 +1,4 @@
 TODO
-- add last X updated timestamp/user to each view
 - add take snapshot to allocation UI
 - add label UI support: i.e. Evander TG2 @ 2017-01-23 12:02:11
 - call-stack, being able to click back to previous view(s)

@@ -63,27 +63,43 @@
 						<!-- TODO a onClick="">Vacation</a-->
 						<a id="viewMode" onClick="toogleTableChart();">llll</a>
 					</td>
-					<td id="menuSession" style="text-align: right">
-						<span id="menuSessionActive"><a onClick="doLogout();">Logout</a></span>
-						<span id="menuSessionInactive"><a onClick="showModal('loginForm');">Login</a></span>
+					<td id="menuSession" style="text-align: right">						
+						<span id="menuSessionActive"><a onClick="doLogout();"><img class="icon" src="icons/020-user-white.svg"> Logout <span id="menuSessionActiveUser"></span></a></span>
+						<span id="menuSessionInactive"><a onClick="showModal('loginForm');"><img class="icon" src="icons/020-user-white.svg"> Login</a></span>
 					</td>
 				</tr>
 			</table>
 		</div>
 
 		<div id="main">
+			<div id="viewMenu">
+				<a onClick="showModal('labelForm');"><img class="icon" src="icons/017-plus.svg"> Add label</a>
+				<a onClick="showModal('labelForm');"><img class="icon" src="icons/013-tag.svg"> Labels</a>
+				<a onClick="showModal('labelForm');"><img class="icon" src="icons/018-clock.svg"> History</a>
+				<a onClick="showModal('labelForm');"><img class="icon" src="icons/016-stats.svg"> Chart view</a>
+				<a onClick="showModal('labelForm');"><img class="icon" src="icons/015-list.svg"> Table view</a>
+			</div>
 			<div id="table-container"></div>
 			<div id="chart-container" style="height: 400px;"></div>
 		</div>
 
-		<div id="loginForm">
+		<div id="loginForm" class="modal-form">
 			<input id="loginUsername" placeholder="Username" />
 			<input id="loginPassword" placeholder="Password" type="password" class="" />
 			<div>
-				<button class="button button-blue" onClick="doLogin('loginUsername', 'loginPassword', 'loginMessage');">Login</button>
-				<button class="button button-black" onClick="hideModal('loginForm');">Close</button>
+				<button class="button button-blue" onClick="doLogin('loginUsername', 'loginPassword', 'loginMessage');"><img class="icon" src="icons/001-check-white.svg"> Login</button>
+				<button class="button button-black" onClick="hideModal('loginForm');"><img class="icon" src="icons/002-close-white.svg"> Close</button>
 			</div>
-			<div id="loginMessage"></div>
+			<div id="loginMessage" class="modal-form-message"></div>
+		</div>
+
+		<div id="labelForm" class="modal-form">
+			<input id="labelText" placeholder="Label" />
+			<div>
+				<button class="button button-blue" onClick="createLabel('labelText', 'labelMessage');"><img class="icon" src="icons/001-check-white.svg"> Create</button>
+				<button class="button button-black" onClick="hideModal('labelForm');"><img class="icon" src="icons/002-close-white.svg"> Close</button>
+			</div>
+			<div id="labelMessage" class="modal-form-message"></div>
 		</div>
 
 		<div id="buttons"></div>

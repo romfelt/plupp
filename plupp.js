@@ -36,7 +36,7 @@ function doSessionUpdate(activeId, inactiveId) {
 	)
 	.then(function() {
 		if (session.reply.request === true && session.reply.session === true) {
-			$('#' + activeId + ' a:first-child').html('Logout (' + session.reply.username + ')');
+			$('#' + activeId + 'User').html(session.reply.username);
 			$('#' + activeId).show();
 			return;
 		}
@@ -45,7 +45,31 @@ function doSessionUpdate(activeId, inactiveId) {
 	})
 }
 
+function createLabel(labelTextId, messageId) {
+	var message = "Failed to create new label, please try again...";
+	var labelText = $('#' + labelTextId).val();
+	var l = Plupp.label(username, password);
+
+	$.when(
+		l.run()
+	)
+	.then(function() {
+		console.log(l.reply);
+		if (l.reply.request === true) {
+			$('#' + messageId).html('').hide();
+			hideModal('labelForm');
+		}
+		else {
+			$('#' + messageId).html(message).show();
+		}
+	})
+	.fail(function() {
+		$('#' + messageId).html(message).show();
+	});
+}
+
 function doLogin(usernameId, passwordId, messageId) {
+	var message = "Login failed, please try again...";
 	var username = $('#' + usernameId).val();
 	var password = $('#' + passwordId).val();
 	var l = Plupp.login(username, password);
@@ -61,11 +85,11 @@ function doLogin(usernameId, passwordId, messageId) {
 			doSessionUpdate('menuSessionActive', 'menuSessionInactive');
 		}
 		else {
-			$('#' + messageId).html("Login failed, please try again...").show();
+			$('#' + messageId).html(message).show();
 		}
 	})
 	.fail(function() {
-		$('#' + messageId).html("Login failed, please try again...").show();
+		$('#' + messageId).html(message).show();
 	});
 }
 
@@ -132,6 +156,9 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 	this.view = null; // current view
 	this.viewArg = null; // current view argument
 	this.stack = new Stack(); // view stack
+
+	this.setLabel = function() {
+	}
 
 	// @param mode The new mode to set, if left undefined it is toggled
 	this.setViewMode = function(mode) {
@@ -212,10 +239,9 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 				t.addDataRow('Budget', quotas.reply.data, 'id', 'header');
 				t.addDelta(); // delta = available - sum
 				t.build(true, $('#' + self.tableContainerId), self.project);
-				//self.lastChange();
 			}
 			else {
-				// TODO self._chartStackedArea('project', projects, quotas, alloc, 'Requested');
+//				self._chartPie('project', projects, quotas);
 			}
 		})
 		.fail(self.onError);
@@ -333,7 +359,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 			}
 
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': []}, 'request': 'plan', 'postData': {'projectId': projectId}});
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['plan']}, 'request': 'plan', 'postData': {'projectId': projectId}});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(resc.reply.data, alloc.reply.data, 'period', 'editable', projectId);
 				t.addSum();
@@ -479,7 +505,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 			}
 
 			if (self.mode == 'table') {
-				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': []}});
+				var t = new PluppTable(self.title, {'updateLastChange': {'callback': self.updateLastChange, 'args': ['plan']}});
 				t.addDateHeader(self.startPeriod, self.length);
 				t.addDataSection(projects.reply.data, alloc.reply.data, 'period', 'constant');
 				t.addSum();
@@ -558,4 +584,15 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 		c.build($('#' + self.chartContainerId), 400);
 	}
 
+/* TODO
+	this._chartPie = function(callback, titles, values) {
+		$.plot('#' + self.chartContainerId, data, {
+			series: {
+				pie: {
+					show: true
+				}
+			}
+		});
+	}
+*/
 }

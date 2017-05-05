@@ -34,3 +34,4 @@ References
 * https://jquery.com/
 * http://momentjs.com/
 * http://www.flotcharts.org/
+* Icons "Flat Lines Circled", http://www.flaticon.com/authors/eleonor-wang, CC 3.0 BY
