@@ -45,6 +45,88 @@ function doSessionUpdate(activeId, inactiveId) {
 	})
 }
 
+function _showPopup(container, request, rowCallback) {
+	// only allow one popup at a time and hide if same popup is called twice
+	var hide = $(container).find('.popup').length > 0;
+	$('.popup').remove();
+	if (hide) {
+		return;
+	}	
+
+	$.when(
+		request.run()
+	)
+	.then(function() {
+		var table = $('<table />').addClass('popup');
+		$.each(request.reply.data, function(i, v) {
+			var tr = rowCallback(v);
+			table.append(tr);
+		});
+
+		var popup = $('<div />').addClass('popup').append(table);
+		var offset = $(container).offset();
+		popup.css('top', offset.top + $(container).outerHeight());
+		popup.css('left', offset.left);
+
+		$(container).append(popup);
+		popup.show();
+	})
+	.fail(function() {
+	});
+}
+
+function showHistory(self) {
+	// TODO get 'view' and 'id' from the View object 
+	return _showPopup(
+		self, 
+		Plupp.getHistory('9999-99-99', 10, 'plan'),
+		function (v) { return $('<tr />').html('<td>' + v.timestamp + '</td><td>' + v.username + '</td>'); }
+	);
+}
+
+function showLabels(self) {
+	// TODO get 'view' and 'id' from the View object 
+	return _showPopup(
+		self, 
+		Plupp.getLabel('9999-99-99', 10, 'plan'),
+		function (v) { return $('<tr />').html('<td>' + v.timestamp + '</td><td>' + v.username + '</td><td>' + v.label + '</td>'); }
+	);
+}
+
+
+/*
+function showHistory(self) {
+	// toggle popup if one is shown
+	if ($('.popup').length > 0) {
+		$('.popup').remove();
+		return;
+	}	
+
+	// TODO get 'view' and 'id' from the View object 
+	var history = Plupp.getHistory('9999-99-99', 10, 'plan');
+
+	$.when(
+		history.run()
+	)
+	.then(function() {
+		var table = $('<table />').addClass('popup');
+		$.each(history.reply.data, function(i, v) {
+			var tr = $('<tr />').html('<td>' + v.timestamp + '</td><td>' + v.username + '</td>');
+			table.append(tr);
+		});
+
+		var tmp = $('<div />').addClass('popup').append(table);
+		var offset = $(self).offset();
+		tmp.css('top', offset.top + $(self).outerHeight());
+		tmp.css('left', offset.left);
+
+		$(self).append(tmp);
+		tmp.show();
+	})
+	.fail(function() {
+	});
+}
+*/
 function createLabel(labelTextId, messageId) {
 	var message = "Failed to create new label, please try again...";
 	var labelText = $('#' + labelTextId).val();
@@ -216,7 +298,7 @@ function PluppView(tableContainerId, chartContainerId, startPeriod, length) {
 				$('.last-change').html('Last change by ' + l.username + ' @ ' + l.timestamp);
 			}
 		})
-		.fail();		
+		.fail();
 	}
 
 	this.allocation = function() {

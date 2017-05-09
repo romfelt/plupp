@@ -1,7 +1,8 @@
 <html>
 	<head>
 		<title>PLUPP 0.5</title>
-		<meta charset="utf-8">
+		<meta charset="utf-8" />
+		<meta http-equiv="cache-control" content="no-cache" />
 		<link rel="shortcut icon" href="/plupp/plupp.png" />
 		<link rel="stylesheet" type="text/css" href="plupp.css" />
 		<script src="jquery-3.1.1.min.js"></script>
@@ -23,23 +24,14 @@
 				$('#main').css('margin-top', $('#menu').innerHeight() + 'px');
 				//$('#chart-container').innerHeight(($('body').height() - $('#menu').innerHeight()) + 'px');
 			}
-
-			function toogleTableChart(mode) {
-				if (view.setViewMode(mode) == 'chart') {
-					$('#viewMode').text('Change to Table view');
-				}
-				else {
-					$('#viewMode').text('Change to Chart view');
-				}
-			}
-
+			
 			$(window).resize(function() {
 				onResize();
 			});
 
 			$(document).ready(function() {
 				onResize();
-				toogleTableChart('chart');
+				view.setViewMode('chart');
 				doSessionUpdate('menuSessionActive', 'menuSessionInactive');
 				console.log("Plupp is ready!");
 			});
@@ -61,7 +53,6 @@
 						<a onClick="view.teams();">Disciplines</a>
 						<a onClick="view.departments();">Departments</a>
 						<!-- TODO a onClick="">Vacation</a-->
-						<a id="viewMode" onClick="toogleTableChart();">llll</a>
 					</td>
 					<td id="menuSession" style="text-align: right">						
 						<span id="menuSessionActive"><a onClick="doLogout();"><img class="icon" src="icons/020-user-white.svg"> Logout <span id="menuSessionActiveUser"></span></a></span>
@@ -74,10 +65,10 @@
 		<div id="main">
 			<div id="viewMenu">
 				<a onClick="showModal('labelForm');"><img class="icon" src="icons/017-plus.svg"> Add label</a>
-				<a onClick="showModal('labelForm');"><img class="icon" src="icons/013-tag.svg"> Labels</a>
-				<a onClick="showModal('labelForm');"><img class="icon" src="icons/018-clock.svg"> History</a>
-				<a onClick="showModal('labelForm');"><img class="icon" src="icons/016-stats.svg"> Chart view</a>
-				<a onClick="showModal('labelForm');"><img class="icon" src="icons/015-list.svg"> Table view</a>
+				<a onClick="showLabels(this);"><img class="icon" src="icons/013-tag.svg"> Labels</a>
+				<a onClick="showHistory(this);"><img class="icon" src="icons/018-clock.svg"> History</a>
+				<a onClick="view.setViewMode('chart');"><img class="icon" src="icons/016-stats.svg"> Chart view</a>
+				<a onClick="view.setViewMode('table');"><img class="icon" src="icons/015-list.svg"> Table view</a>
 			</div>
 			<div id="table-container"></div>
 			<div id="chart-container" style="height: 400px;"></div>
